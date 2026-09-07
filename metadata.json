@@ -1,0 +1,6 @@
+{
+  "name": "STEEPCORE",
+  "description": "Generates a comprehensive learning roadmap for any job role as an interactive flowchart.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

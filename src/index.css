@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas-default: #0d1117;
+  --color-canvas-surface: #161b22;
+  --color-canvas-inset: #21262d;
+  --color-fg-default: #e6edf3;
+  --color-fg-muted: #7d8590;
+  --color-border-default: #30363d;
+  --color-action-primary: #238636;
+  --color-action-primary-hover: #2ea043;
+  --color-action-accent: #1f6feb;
+  --color-action-accent-hover: #2f81f7;
+
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas-default);
+    color: var(--color-fg-default);
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-default) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-border-default);
+    border-radius: 4px;
+  }
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: var(--color-fg-muted);
+  }
+}
+
+@keyframes progress {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 32px 0;
+  }
+}
