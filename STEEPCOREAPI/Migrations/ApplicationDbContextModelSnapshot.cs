@@ -275,7 +275,14 @@ namespace STEEPCOREAPI.Migrations
                     b.Property<double>("PositionX")
                         .HasColumnType("double precision");
 
+                    b.Property<bool>("IsExpandable")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("SubBlueprintId")
+                        .HasColumnType("uuid");
+
                     b.Property<double>("PositionY")
+
                         .HasColumnType("double precision");
 
                     b.Property<int>("Type")
@@ -382,7 +389,6 @@ namespace STEEPCOREAPI.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -390,7 +396,6 @@ namespace STEEPCOREAPI.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
@@ -410,7 +415,6 @@ namespace STEEPCOREAPI.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
@@ -424,7 +428,6 @@ namespace STEEPCOREAPI.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
