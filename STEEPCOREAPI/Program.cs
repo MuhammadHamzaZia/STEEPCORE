@@ -237,11 +237,11 @@ if (enableSwagger)
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
+    //app.UseDeveloperExceptionPage();
 }
 else
 {
-    app.UseExceptionHandler("/error");
+    //app.UseExceptionHandler("/error");
     app.UseHsts();
     app.UseHttpsRedirection();
 }
@@ -272,7 +272,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Error handling endpoint
-app.MapGet("/error", (HttpContext context, ILoggerFactory loggerFactory) =>
+app.Map("/error", (HttpContext context, ILoggerFactory loggerFactory) =>
 {
     var logger = loggerFactory.CreateLogger("ErrorHandler");
     var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
