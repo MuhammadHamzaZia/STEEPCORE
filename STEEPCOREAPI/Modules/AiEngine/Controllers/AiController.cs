@@ -63,19 +63,6 @@ public class AiController : ControllerBase
                             b.Title.ToLower().Contains(normalizedInput) ||
                             normalizedInput.Contains(b.Title.ToLower()))
                 .FirstOrDefaultAsync(cancellationToken);
-            // TIER 3: Semantic Vector Search Fallback (Catches different phrasing and conceptual overlaps)
-            if (existingBlueprint == null)
-            {
-                var promptVectorArray = await _embeddingService.GenerateEmbeddingAsync(request.Prompt, cancellationToken);
-                var promptVector = new Pgvector.Vector(promptVectorArray);
-
-                existingBlueprint = await _dbContext.Blueprints
-                    .Include(b => b.Nodes)
-                    .Include(b => b.Edges)
-                    // removed
-                    // removed
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
 
             if (existingBlueprint != null)
             {
@@ -91,8 +78,6 @@ public class AiController : ControllerBase
                 return StatusCode(502, "Failed to retrieve a valid roadmap structure from AI.");
             }
 
-            var embeddingText = $"{generated.Title}. {generated.Description}. {generated.Domain}";
-            var blueprintVectorArray = await _embeddingService.GenerateEmbeddingAsync(embeddingText, cancellationToken);
 
             var blueprintId = Guid.NewGuid();
             var blueprint = new Blueprint
