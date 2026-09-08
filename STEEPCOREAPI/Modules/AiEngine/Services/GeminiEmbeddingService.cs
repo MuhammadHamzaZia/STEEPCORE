@@ -15,7 +15,7 @@ public class GeminiEmbeddingService : IEmbeddingService
     private readonly ILogger<GeminiEmbeddingService> _logger;
 
     // Use the batch endpoint to match the plural JSON response format
-    private const string GeminiEmbedApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents";
+    private const string GeminiEmbedApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents";
 
     public GeminiEmbeddingService(
         HttpClient httpClient,
@@ -95,7 +95,7 @@ public class GeminiEmbeddingService : IEmbeddingService
             {
                 Requests = texts.Select(t => new GeminiEmbeddingRequestDto
                 {
-                    Model = "models/text-embedding-004",
+                    Model = "models/gemini-embedding-2",
                     Content = new EmbeddingContentDto
                     {
                         Parts = new List<EmbeddingPartDto> { new EmbeddingPartDto { Text = t } }
