@@ -42,7 +42,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting blueprint");
-            return StatusCode(500, "Error retrieving blueprint");
+            throw;
         }
     }
 
@@ -134,7 +134,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating blueprint");
-            return StatusCode(500, "Error creating blueprint");
+            throw;
         }
     }
 
@@ -163,7 +163,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching blueprints");
-            return StatusCode(500, "Error searching");
+            throw;
         }
     }
 
@@ -186,7 +186,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving published blueprints");
-            return StatusCode(500, "Error retrieving blueprints");
+            throw;
         }
     }
 
@@ -225,7 +225,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating blueprint");
-            return StatusCode(500, "Error updating blueprint");
+            throw;
         }
     }
 
@@ -255,7 +255,7 @@ public class BlueprintsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting blueprint");
-            return StatusCode(500, "Error deleting blueprint");
+            throw;
         }
     }
 

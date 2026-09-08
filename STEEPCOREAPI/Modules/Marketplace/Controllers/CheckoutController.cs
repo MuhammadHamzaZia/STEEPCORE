@@ -63,7 +63,7 @@ public class CheckoutController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating checkout session");
-            return StatusCode(500, "Error creating checkout session");
+            throw;
         }
     }
 
@@ -104,7 +104,7 @@ public class CheckoutController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming payment");
-            return StatusCode(500, "Error confirming payment");
+            throw;
         }
     }
 

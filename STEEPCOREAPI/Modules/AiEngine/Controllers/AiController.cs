@@ -183,7 +183,7 @@ public class AiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating roadmap");
-            return StatusCode(500, "Error generating roadmap");
+            throw;
         }
     }
 

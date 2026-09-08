@@ -76,6 +76,8 @@ public class ExceptionHandlingMiddleware
                 response.StatusCode = 500;
                 response.Message = "An internal server error occurred";
                 response.Detail = exception.Message;
+                response.InnerError = exception.InnerException?.Message;
+                response.StackTrace = exception.StackTrace;
                 break;
         }
 
@@ -91,6 +93,8 @@ public class ErrorResponseDto
     public int StatusCode { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? Detail { get; set; }
+    public string? InnerError { get; set; }
+    public string? StackTrace { get; set; }
     public string? TraceId { get; set; }
     public DateTime Timestamp { get; set; }
 }
