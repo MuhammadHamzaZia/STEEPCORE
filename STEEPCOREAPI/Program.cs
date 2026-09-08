@@ -68,8 +68,7 @@ if (isProduction)
         throw new InvalidOperationException("Stripe Secret Key must be configured in production.");
 
     var connectionString = configuration.GetConnectionString("DefaultConnection") ?? configuration["DB_CONNECTION_STRING"];
-    if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("localhost"))
-        throw new InvalidOperationException("Database connection string must point to production database, not localhost.");
+  
 }
 #endregion
 
