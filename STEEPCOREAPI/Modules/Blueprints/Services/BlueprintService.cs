@@ -103,7 +103,7 @@ public class BlueprintService : IBlueprintService
             return await _context.Blueprints
                 .Where(b => b.IsPublished && b.Embedding != null)
                 // Use pgvector's built-in mathematical distance calculation
-                .OrderBy(b => b.Embedding!.CosineDistance(searchVector))
+                // removed
                 .Take(5)
                 .Include(b => b.Nodes)
                 .Include(b => b.Edges)
@@ -227,7 +227,7 @@ public class BlueprintService : IBlueprintService
                 return false;
 
             // Map the float array directly to Pgvector.Vector
-            blueprint.Embedding = new Pgvector.Vector(embedding);
+            //blueprint.Embedding = new Pgvector.Vector(embedding);
             blueprint.UpdatedAt = DateTime.UtcNow;
 
             _context.Blueprints.Update(blueprint);

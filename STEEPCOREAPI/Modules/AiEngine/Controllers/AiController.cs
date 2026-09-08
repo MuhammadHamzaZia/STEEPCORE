@@ -72,8 +72,8 @@ public class AiController : ControllerBase
                 existingBlueprint = await _dbContext.Blueprints
                     .Include(b => b.Nodes)
                     .Include(b => b.Edges)
-                    .Where(b => b.Embedding != null && b.Embedding.CosineDistance(promptVector) < 0.32)
-                    .OrderBy(b => b.Embedding!.CosineDistance(promptVector))
+                    // removed
+                    // removed
                     .FirstOrDefaultAsync(cancellationToken);
             }
 
@@ -106,7 +106,7 @@ public class AiController : ControllerBase
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsPublished = true,
-                Embedding = new Pgvector.Vector(blueprintVectorArray)
+                //Embedding = new Pgvector.Vector(blueprintVectorArray)
             };
 
             var nodeMapping = new Dictionary<string, Guid>();

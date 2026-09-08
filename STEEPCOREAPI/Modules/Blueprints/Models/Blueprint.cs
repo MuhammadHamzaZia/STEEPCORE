@@ -11,6 +11,8 @@ public class Blueprint
     public string Domain { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public bool IsPublished { get; set; }
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public Pgvector.Vector? Embedding { get; set; }
     public string? CreatedByUserId { get; set; }
     public ApplicationUser? CreatedByUser { get; set; }

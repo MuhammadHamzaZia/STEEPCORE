@@ -71,9 +71,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.IsPublished).HasDefaultValue(false);
 
             // Configure vector column for pgvector
-            entity.Property(e => e.Embedding)
-                .HasMaxLength(1536)
-                .IsRequired(false);
+            //entity.Property(e => e.Embedding)
+                //.HasMaxLength(1536)
+                //.IsRequired(false);
 
             // Relationships
             entity.HasOne(e => e.CreatedByUser)
