@@ -11,7 +11,7 @@ public class GeminiAiService : IAiService
     private readonly ILogger<GeminiAiService> _logger;
 
     // 1. Switched to gemini-2.5-flash to avoid 404s on deprecated model aliases
-    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"; private const string SystemPrompt = @"You are an expert learning roadmap generator. 
+    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"; private const string SystemPrompt = @"You are an expert learning roadmap generator. 
 Generate a detailed, structured learning path for the user's goal. 
 Return ONLY valid JSON (no markdown, no explanations) matching this structure:
 {
