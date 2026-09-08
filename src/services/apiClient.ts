@@ -44,7 +44,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const baseUrlSanitized = BASE_URL.replace(/\/$/, '');
+  const endpointSanitized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
 
   try {
     const response = await fetch(url, { ...options, headers });
@@ -66,13 +68,40 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      const msg = errData.message || errData.error || errData.title || `Request failed with status ${response.status}`;
+      const msg =
+        (errData.error && typeof errData.error.message === 'string' && errData.error.message) ||
+        (typeof errData.message === 'string' && errData.message) ||
+        (typeof errData.error === 'string' && errData.error) ||
+        (typeof errData.title === 'string' && errData.title) ||
+        `Request failed with status ${response.status} at ${url}`;
+      
+      if (response.status === 503) {
+        throw new Error('STEEPCOREAPI AI service is currently busy or warming up (503 Service Unavailable). Please try again in a few seconds.');
+      }
       throw new Error(msg);
     }
 
-    return await response.json();
+    const data = await response.json();
+    if (data && data.error) {
+      const msg = typeof data.error === 'string' 
+        ? data.error 
+        : (data.error.message || JSON.stringify(data.error));
+      throw new Error(msg);
+    }
+
+    return data;
   } catch (err: any) {
     console.warn(`[apiClient] Request to ${endpoint} failed:`, err.message || err);
+    
+    // Intercept standard browser network/CORS errors
+    if (err.message === 'Failed to fetch') {
+      throw new Error(
+        'Failed to connect to STEEPCOREAPI. This usually happens for one of two reasons: ' +
+        '1) CORS Error: Your Render API backend is blocking this app URL. Ensure your backend allows cross-origin requests (e.g., app.use(cors())). ' +
+        '2) Render Sleep: Your Render free instance is asleep and needs a minute to wake up.'
+      );
+    }
+    
     throw err;
   }
 }

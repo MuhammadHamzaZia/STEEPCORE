@@ -182,7 +182,9 @@ export const api = {
           type: n.type || 'task',
           status: n.status || 'pending',
           codeSnippet: n.codeSnippet || n.code || '',
-          position: n.position || { x: (idx % 3) * 220 + 50, y: Math.floor(idx / 3) * 150 + 50 },
+          position: (n.positionX !== undefined && n.positionY !== undefined && (n.positionX !== 0 || n.positionY !== 0))
+            ? { x: n.positionX, y: n.positionY }
+            : (n.position || { x: (idx % 3) * 220 + 50, y: Math.floor(idx / 3) * 150 + 50 }),
           isAiGenerated: !!n.isAiGenerated,
           allowDataTraining: false
         }));
@@ -194,9 +196,9 @@ export const api = {
   },
 
   // AI Generation
-  async generateAiBlueprint(params: { prompt: string; topic?: string; targetRole?: string; level?: string }) {
+  async generateAiBlueprint(params: { prompt: string }) {
     try {
-      const res = await apiClient.post<any>('/api/Ai/generate', params);
+      const res = await apiClient.post<any>(`/api/Ai/generate?_t=${Date.now()}`, { prompt: params.prompt });
       return res;
     } catch (error: any) {
       console.warn('Live AI endpoint returned error or unavailable:', error);

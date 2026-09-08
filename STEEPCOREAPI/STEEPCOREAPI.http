@@ -1,0 +1,107 @@
+@API_URL = https://localhost:7017
+@ACCESS_TOKEN = your-jwt-token-here
+@BLUEPRINT_ID = 550e8400-e29b-41d4-a716-446655440000
+
+### 1. Health Check
+GET {{API_URL}}/health
+Accept: application/json
+
+###
+
+### 2. Generate Roadmap with AI
+POST {{API_URL}}/api/Ai/generate
+Content-Type: application/json
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+{
+  "prompt": "I want to learn web development with React and Node.js in 3 months"
+}
+
+###
+
+### 3. Create Blueprint
+POST {{API_URL}}/api/Blueprints
+Content-Type: application/json
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+{
+  "title": "Learn .NET Development",
+  "description": "Complete roadmap to master .NET development",
+  "domain": "Backend Development",
+  "price": 29.99,
+  "isPublished": true,
+  "nodes": [
+    {
+      "label": "C# Basics",
+      "type": "concept",
+      "positionX": 100,
+      "positionY": 150,
+      "description": "Learn C# fundamentals"
+    }
+  ],
+  "edges": []
+}
+
+###
+
+### 4. Get Blueprint by ID
+GET {{API_URL}}/api/Blueprints/{{BLUEPRINT_ID}}
+Accept: application/json
+
+###
+
+### 5. Update Blueprint
+PUT {{API_URL}}/api/Blueprints/{{BLUEPRINT_ID}}
+Content-Type: application/json
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+{
+  "title": "Updated .NET Development Roadmap",
+  "description": "Updated description with advanced topics",
+  "domain": "Backend Development",
+  "price": 39.99,
+  "isPublished": true
+}
+
+###
+
+### 6. Search Blueprints
+GET {{API_URL}}/api/Blueprints/search?query=web%20development&limit=5
+Accept: application/json
+
+###
+
+### 7. Get Published Blueprints
+GET {{API_URL}}/api/Blueprints/published?pageNumber=1&pageSize=10
+Accept: application/json
+
+###
+
+### 8. Delete Blueprint
+DELETE {{API_URL}}/api/Blueprints/{{BLUEPRINT_ID}}
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+###
+
+### 9. Create Checkout Session
+POST {{API_URL}}/api/Checkout/session
+Content-Type: application/json
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+{
+  "blueprintId": "{{BLUEPRINT_ID}}",
+  "amount": 2999
+}
+
+###
+
+### 10. Confirm Payment
+GET {{API_URL}}/api/Checkout/confirm?sessionId=cs_test_session_id
+Accept: application/json
+
+###
+
+### 11. Get User Transactions
+GET {{API_URL}}/api/Checkout/transactions
+Authorization: Bearer {{ACCESS_TOKEN}}
+Accept: application/json

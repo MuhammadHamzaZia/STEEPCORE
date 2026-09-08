@@ -196,13 +196,9 @@ export const RoadmapGenerator = ({ initialRole, onBack }: RoadmapGeneratorProps)
     setChatMessages([]);
 
     try {
-      // 1. First attempt call to live STEEPCOREAPI (/api/Ai/generate)
       try {
         const aiData = await api.generateAiBlueprint({
-          prompt: targetRole.trim(),
-          topic: targetRole.trim(),
-          targetRole: targetRole.trim(),
-          level: 'intermediate',
+          prompt: targetRole.trim()
         });
 
         if (aiData && Array.isArray(aiData.nodes) && aiData.nodes.length > 0) {
@@ -214,13 +210,13 @@ export const RoadmapGenerator = ({ initialRole, onBack }: RoadmapGeneratorProps)
               type: n.type || 'topic',
               description: n.description || '',
             },
-            position: n.coordinates || n.position || { x: (idx % 3) * 240 + 50, y: Math.floor(idx / 3) * 160 + 50 },
+            position: n.coordinates || (n.positionX !== undefined && n.positionY !== undefined && (n.positionX !== 0 || n.positionY !== 0) ? { x: n.positionX, y: n.positionY } : { x: (idx % 3) * 240 + 50, y: Math.floor(idx / 3) * 160 + 50 }),
           }));
 
           const formattedEdges: Edge[] = (aiData.edges || []).map((e: any, idx: number) => ({
             id: String(e.id || `edge-${idx}`),
-            source: String(e.source || e.sourceId || formattedNodes[Math.max(0, idx - 1)]?.id),
-            target: String(e.target || e.targetId || formattedNodes[idx]?.id),
+            source: String(e.source || e.sourceNodeId || formattedNodes[Math.max(0, idx - 1)]?.id),
+            target: String(e.target || e.targetNodeId || formattedNodes[idx]?.id),
             label: e.label || e.relationshipLabel,
             type: 'smoothstep',
             animated: true,
@@ -241,38 +237,49 @@ export const RoadmapGenerator = ({ initialRole, onBack }: RoadmapGeneratorProps)
           setNodes(layoutedNodes);
           setEdges(layoutedEdges);
           return;
+        } else if (aiData && aiData.error) {
+          const errorMsg = typeof aiData.error === 'string' ? aiData.error : (aiData.error.message || 'AI service unavailable');
+          throw new Error(errorMsg);
+        } else {
+          throw new Error("No graph nodes returned from STEEPCOREAPI AI service.");
         }
-      } catch (aiErr) {
-        console.warn("STEEPCOREAPI AI endpoint call failed or returned custom format, trying secondary solver:", aiErr);
+      } catch (aiErr: any) {
+        console.warn("STEEPCOREAPI AI generation endpoint exception/unavailable:", aiErr);
+        
+        // Fallback: Query STEEPCOREAPI published blueprints for closest matching roadmap
+        const searchResults = await api.searchBlueprints(targetRole.trim());
+        if (searchResults.length > 0) {
+          const bestMatch = searchResults[0];
+          const matchedNodes = await api.getNodesByBlueprintId(bestMatch.id);
+          if (matchedNodes.length > 0) {
+            const formattedNodes: Node[] = matchedNodes.map((n) => ({
+              id: n.id,
+              type: 'editable',
+              data: { label: n.label, type: n.type, description: n.description },
+              position: n.position
+            }));
+            const formattedEdges: Edge[] = formattedNodes.slice(1).map((n, i) => ({
+              id: `e-${formattedNodes[i].id}-${n.id}`,
+              source: formattedNodes[i].id,
+              target: n.id,
+              type: 'smoothstep',
+              animated: true
+            }));
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(formattedNodes, formattedEdges, 'TB');
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
+            return;
+          }
+        }
+
+        const rawMsg = aiErr.message || String(aiErr);
+        let cleanMsg = rawMsg;
+        if (rawMsg.includes('503') || rawMsg.includes('UNAVAILABLE') || rawMsg.includes('unavailable')) {
+          cleanMsg = "STEEPCOREAPI AI service is currently warming up or busy (503 Service Unavailable). Please try clicking Generate again.";
+        }
+        
+        throw new Error(cleanMsg);
       }
-
-      // 2. Secondary fallback via local express generator endpoint
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const locale = navigator.language;
-
-      const response = await fetch('/api/roadmap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: targetRole.trim(), timeZone, locale }),
-      });
-
-      if (!response.ok) {
-        let errorMsg = 'Failed to generate roadmap. Please try again.';
-        try {
-          const errData = await response.json();
-          if (errData.error) errorMsg = errData.error;
-        } catch (e) {}
-        throw new Error(errorMsg);
-      }
-
-      const data: RoadmapData = await response.json();
-      
-      setRegionalInsight(data.regionalInsight || null);
-      setLocalResources(data.localResources || []);
-      const { nodes: initialNodes, edges: initialEdges } = parseRoadmapToElements(data);
-      setNodes(initialNodes);
-      setEdges(initialEdges);
-      
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     } finally {
