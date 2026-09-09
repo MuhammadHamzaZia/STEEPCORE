@@ -5,6 +5,8 @@ using STEEPCOREAPI.Modules.Blueprints.DTOs;
 using STEEPCOREAPI.Modules.Blueprints.Models;
 using STEEPCOREAPI.Shared.Interfaces;
 using STEEPCOREAPI.Shared.Models;
+using STEEPCOREAPI.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace STEEPCOREAPI.Modules.Blueprints.Controllers;
 
@@ -15,11 +17,13 @@ public class BlueprintsController : ControllerBase
 {
     private readonly IBlueprintService _service;
     private readonly ILogger<BlueprintsController> _logger;
+    private readonly ApplicationDbContext _dbContext;
 
-    public BlueprintsController(IBlueprintService service, ILogger<BlueprintsController> logger)
+    public BlueprintsController(IBlueprintService service, ILogger<BlueprintsController> logger, ApplicationDbContext dbContext)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }
 
     [HttpGet("{id:guid}")]
@@ -164,6 +168,101 @@ public class BlueprintsController : ControllerBase
         {
             _logger.LogError(ex, "Error searching blueprints");
             throw;
+        }
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<List<BlueprintResponseDto>>> GetMyBlueprints(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized(new { message = "User not found" });
+
+            var myBlueprints = await _dbContext.Blueprints
+                .Include(b => b.Nodes)
+                .Include(b => b.Edges)
+                .Where(b => b.CreatedByUserId == userId)
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            return Ok(myBlueprints.Select(MapToResponse).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user blueprints");
+            throw;
+        }
+    }
+
+        [HttpGet("trending")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<BlueprintResponseDto>>> GetTrendingBlueprints([FromQuery] int limit = 3, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var blueprints = await _dbContext.Blueprints
+                .Include(b => b.Nodes)
+                .Include(b => b.Edges)
+                .Where(b => b.IsPublished)
+                .OrderByDescending(b => b.PurchaseCount)
+                .ThenByDescending(b => b.ViewCount)
+                .Take(Math.Max(1, Math.Min(limit, 20)))
+                .ToListAsync(cancellationToken);
+                
+            return Ok(blueprints.Select(MapToResponse).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting trending blueprints");
+            throw;
+        }
+    }
+
+    [HttpGet("suggestions")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<string>>> GetQuickSuggestions(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var suggestions = await _dbContext.Blueprints
+                .Where(b => b.IsPublished && !string.IsNullOrEmpty(b.Domain))
+                .GroupBy(b => b.Domain)
+                .OrderByDescending(g => g.Count())
+                .Take(6)
+                .Select(g => g.Key)
+                .ToListAsync(cancellationToken);
+                
+            if (suggestions.Count == 0)
+                suggestions = new List<string> { "Microservices", "RAG Pipeline", "PostgreSQL", "FastAPI", "Kubernetes", "GraphQL" };
+                
+            return Ok(suggestions);
+        }
+        catch
+        {
+            return Ok(new List<string> { "Microservices", "RAG Pipeline", "PostgreSQL", "FastAPI", "Kubernetes", "GraphQL" });
+        }
+    }
+
+    [HttpGet("domain-counts")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Dictionary<string, int>>> GetDomainCounts(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var counts = await _dbContext.Blueprints
+                .Where(b => b.IsPublished && !string.IsNullOrEmpty(b.Domain))
+                .GroupBy(b => b.Domain)
+                .Select(g => new { Domain = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(k => k.Domain, v => v.Count, cancellationToken);
+                
+            return Ok(counts);
+        }
+        catch
+        {
+            return Ok(new Dictionary<string, int>());
         }
     }
 

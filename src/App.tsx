@@ -4,11 +4,10 @@
  */
 
 import { useState } from 'react';
-import { RoadmapGenerator } from './components/RoadmapGenerator';
+import { RoadmapWorkspace } from "./components/RoadmapWorkspace";
 import { LandingPage } from './components/LandingPage';
 import { CatalogPage } from './components/CatalogPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
-import { EditorPage } from './components/EditorPage';
 import { DashboardPage } from './components/DashboardPage';
 import { Layout } from './components/Layout';
 import { useUIStore } from './store/useUIStore';
@@ -41,7 +40,7 @@ export default function App() {
   };
 
   if (currentPage === 'editor') {
-    return <EditorPage onBack={() => setCurrentPage('product')} />;
+    return <RoadmapWorkspace initialBlueprintId={useUIStore().selectedBlueprintId || undefined} onBack={() => setCurrentPage('product')} />;
   }
 
   return (
@@ -71,7 +70,7 @@ export default function App() {
           />
         )}
         {currentPage === 'roadmap' && selectedRole && (
-          <RoadmapGenerator initialRole={selectedRole} onBack={handleBackToLanding} />
+          <RoadmapWorkspace initialRole={selectedRole} onBack={handleBackToLanding} />
         )}
         {currentPage === 'product' && (
           <ProductDetailPage onNavigateToEditor={() => setCurrentPage('editor')} />

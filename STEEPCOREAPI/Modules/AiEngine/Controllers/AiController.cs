@@ -113,7 +113,9 @@ public class AiController : ControllerBase
                         Label = node.Label,
                         Type = parsedType,
                         Description = string.Empty,
-                        IsExpandable = node.IsExpandable
+                        IsExpandable = node.IsExpandable,
+                        PositionX = node.PositionX,
+                        PositionY = node.PositionY
                     });
                 }
             }
@@ -215,8 +217,8 @@ public class AiController : ControllerBase
             Id = n.Id.ToString(),
             Label = n.Label,
             Type = n.Type.ToString(),
-            PositionX = 0,
-            PositionY = 0,
+            PositionX = n.PositionX,
+            PositionY = n.PositionY,
             IsExpandable = n.IsExpandable
         }).ToList() ?? new List<STEEPCOREAPI.Modules.AiEngine.DTOs.AiNodeDto>(),
         Edges = bp.Edges?.Select(e => new STEEPCOREAPI.Modules.AiEngine.DTOs.AiEdgeDto

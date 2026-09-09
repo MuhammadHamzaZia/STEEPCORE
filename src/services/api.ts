@@ -3,6 +3,9 @@ import { blueprints as mockBlueprints, nodes as mockNodes, userProgress, users, 
 import { apiClient } from './apiClient';
 
 export const api = {
+  getMyBlueprints: async (): Promise<Blueprint[]> => {
+    return apiClient.get<Blueprint[]>('/api/blueprints/me');
+  },
   // System Health
   async checkHealth(): Promise<{ status: string }> {
     try {
@@ -28,148 +31,68 @@ export const api = {
   },
 
   // Blueprints
-  async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
+    async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
     try {
       const data = await apiClient.get<any[]>('/api/Blueprints/published');
-      if (Array.isArray(data) && data.length > 0) {
-        const formatted: Blueprint[] = data.map((item: any, idx: number) => ({
-          id: String(item.id || item.blueprintId || idx + 1),
-          title: item.title || item.name || 'Untitled Blueprint',
-          slug: item.slug || (item.title ? item.title.toLowerCase().replace(/\s+/g, '-') : 'blueprint'),
-          description: item.description || 'System architecture pattern.',
-          domain: item.domain || 'Web Architecture',
-          price: item.price ?? 0,
-          isFree: item.isFree ?? (item.price === 0 || !item.price),
-          rating: item.rating ?? 4.8,
-          starsCount: item.starsCount || item.stars || 120,
-          techStack: Array.isArray(item.techStack) ? item.techStack : (item.tags || ['TypeScript', 'Node.js']),
-          creatorId: item.creatorId || 'official',
-          source: item.source || 'official',
-          isPublished: true,
-          version: item.version || '1.0.0',
-          allowDataTraining: false,
-          nodesCount: Array.isArray(item.nodes) ? item.nodes.length : (item.nodesCount || 8),
-          createdAt: item.createdAt || new Date().toISOString(),
-          updatedAt: item.updatedAt || new Date().toISOString(),
-          creator: item.creator || { name: 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
+      if (Array.isArray(data)) {
+        let formatted = data.map(item => ({
+          ...item,
+          id: String(item.id),
+          nodesCount: item.nodes?.length || 0,
+          creator: { name: item.creatorName || 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
         }));
-
         if (domainFilter && domainFilter !== 'all') {
-          return formatted.filter(bp => bp.domain === domainFilter);
+          formatted = formatted.filter((bp: any) => bp.domain === domainFilter);
         }
         return formatted;
       }
     } catch (e) {
-      console.warn('Using local fallback for getBlueprints due to remote API state:', e);
+      console.error(e);
     }
-
-    if (domainFilter && domainFilter !== 'all') {
-      return mockBlueprints.filter(bp => bp.domain === domainFilter);
-    }
-    return mockBlueprints;
+    return [];
   },
-
   async getTrendingBlueprints(limit: number = 3): Promise<Blueprint[]> {
     try {
-      const all = await this.getBlueprints();
-      return [...all].sort((a, b) => b.starsCount - a.starsCount).slice(0, limit);
-    } catch {
-      return [...mockBlueprints].sort((a, b) => b.starsCount - a.starsCount).slice(0, limit);
+      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/trending?limit=${limit}`);
+      return data;
+    } catch (e) {
+      return [];
     }
   },
-
   async searchBlueprints(term: string): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<any[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
-      if (Array.isArray(data) && data.length > 0) {
-        return data.map((item: any, idx: number) => ({
-          id: String(item.id || idx + 1),
-          title: item.title || 'SearchResult',
-          slug: item.slug || 'search-result',
-          description: item.description || '',
-          domain: item.domain || 'General',
-          price: item.price ?? 0,
-          isFree: item.isFree ?? true,
-          rating: item.rating ?? 4.5,
-          starsCount: item.starsCount ?? 50,
-          techStack: item.techStack || ['AI', 'API'],
-          creatorId: 'official',
-          source: 'official',
-          isPublished: true,
-          version: '1.0.0',
-          allowDataTraining: false,
-          nodesCount: item.nodesCount || 5,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          creator: { name: 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-        }));
-      }
+      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
+      return data;
     } catch (e) {
-      console.warn('Search fallback to client filter');
+      return [];
     }
-
-    const all = await this.getBlueprints();
-    const q = term.toLowerCase();
-    return all.filter(bp => bp.title.toLowerCase().includes(q) || bp.description.toLowerCase().includes(q));
   },
-
   async getQuickSuggestions(): Promise<string[]> {
-    const all = await this.getBlueprints();
-    const tagCounts: Record<string, number> = {};
-    all.forEach(bp => {
-      bp.techStack?.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
-    const suggestions = Object.entries(tagCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([tag]) => tag);
-
-    return suggestions.length > 0 ? suggestions : ['Microservices', 'RAG Pipeline', 'PostgreSQL', 'FastAPI', 'Kubernetes', 'GraphQL'];
+    try {
+      return await apiClient.get<string[]>('/api/Blueprints/suggestions');
+    } catch (e) {
+      return ['React', 'Node.js', 'PostgreSQL'];
+    }
   },
-
   async getDomainCounts(): Promise<Record<string, number>> {
-    const all = await this.getBlueprints();
-    const counts: Record<string, number> = {};
-    all.forEach(bp => {
-      counts[bp.domain] = (counts[bp.domain] || 0) + 1;
-    });
-    return counts;
+    try {
+      return await apiClient.get<Record<string, number>>('/api/Blueprints/domain-counts');
+    } catch (e) {
+      return {};
+    }
   },
-
   async getBlueprintById(id: string): Promise<Blueprint | undefined> {
     try {
       const data = await apiClient.get<any>(`/api/Blueprints/${id}`);
-      if (data && data.id) {
-        return {
-          id: String(data.id),
-          title: data.title || 'Blueprint Detail',
-          slug: data.slug || 'blueprint-detail',
-          description: data.description || '',
-          domain: data.domain || 'Web Architecture',
-          price: data.price ?? 0,
-          isFree: data.isFree ?? true,
-          rating: data.rating ?? 4.8,
-          starsCount: data.starsCount ?? 150,
-          techStack: data.techStack || ['System Architecture'],
-          creatorId: data.creatorId || 'official',
-          source: data.source || 'official',
-          isPublished: true,
-          version: data.version || '1.0.0',
-          allowDataTraining: false,
-          nodesCount: Array.isArray(data.nodes) ? data.nodes.length : 8,
-          createdAt: data.createdAt || new Date().toISOString(),
-          updatedAt: data.updatedAt || new Date().toISOString(),
-          creator: data.creator || { name: 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-        };
+      if (data) {
+        data.nodesCount = data.nodes?.length || 0;
+        return data;
       }
     } catch (e) {
-      console.warn(`Blueprint ${id} remote fetch failed, trying mock:`, e);
+      console.error(e);
     }
-    return mockBlueprints.find(bp => bp.id === id);
+    return undefined;
   },
-
   async getNodesByBlueprintId(blueprintId: string): Promise<FlowchartNode[]> {
     try {
       const data = await apiClient.get<any>(`/api/Blueprints/${blueprintId}`);
@@ -233,14 +156,16 @@ export const api = {
   },
 
   // User & Transactions
-  async getUserProgress(userId: string): Promise<UserProgress[]> {
-    return userProgress.filter(up => up.userId === userId);
+    async getUserProgress(blueprintId: string): Promise<any[]> {
+    try {
+      return await apiClient.get<any[]>(`/api/UserProgress/${blueprintId}`);
+    } catch {
+      return [];
+    }
   },
-
-  async getBlueprintProgress(userId: string, blueprintId: string): Promise<UserProgress | undefined> {
-    return userProgress.find(up => up.userId === userId && up.blueprintId === blueprintId);
+  async toggleNodeProgress(blueprintId: string, nodeId: string, status: string): Promise<void> {
+    await apiClient.post('/api/UserProgress/toggle', { blueprintId, nodeId, status });
   },
-  
   async getUser(id: string): Promise<User | undefined> {
     return users.find(u => u.id === id);
   },

@@ -1,10 +1,15 @@
-import express from "express";
+const fs = require('fs');
+const file = '/app/applet/server.ts';
+let code = fs.readFileSync(file, 'utf8');
+
+// The new server.ts that ONLY serves Vite and has NO custom APIs
+const cleanServer = `import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 
 async function startServer() {
   const app = express();
-  const PORT = parseInt(process.env.PORT || '3000', 10);
+  const PORT = process.env.PORT || 3000;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -22,8 +27,12 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(\`Server running on port \${PORT}\`);
   });
 }
 
 startServer();
+`;
+
+fs.writeFileSync(file, cleanServer);
+console.log("Stripped server.ts of Node APIs");
