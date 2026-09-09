@@ -58,11 +58,12 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (username, email, password) => {
+            register: async (username, email, password) => {
         set({ isLoading: true });
         try {
           await apiClient.post('/api/Auth/register', {
             username,
+            fullName: username,
             email,
             password,
           });

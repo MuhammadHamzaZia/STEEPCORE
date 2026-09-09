@@ -42,7 +42,7 @@ public class AiController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Prompt) || request.Prompt.Length > 2000)
-            return BadRequest("Invalid prompt");
+            return BadRequest(new { message = "Invalid prompt" });
 
         try
         {
@@ -75,7 +75,7 @@ public class AiController : ControllerBase
 
             if (generated == null || string.IsNullOrWhiteSpace(generated.Title))
             {
-                return StatusCode(502, "Failed to retrieve a valid roadmap structure from AI.");
+                return StatusCode(502, new { message = "Failed to retrieve a valid roadmap structure from AI." });
             }
 
 

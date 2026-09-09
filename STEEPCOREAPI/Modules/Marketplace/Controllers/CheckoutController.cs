@@ -25,16 +25,16 @@ public class CheckoutController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (request == null || request.BlueprintId == Guid.Empty || request.Amount <= 0)
-            return BadRequest("Invalid blueprint ID or amount");
+            return BadRequest(new { message = "Invalid blueprint ID or amount" });
 
         if (request.Amount > 99999900)
-            return BadRequest("Amount exceeds maximum");
+            return BadRequest(new { message = "Amount exceeds maximum" });
 
         try
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User ID not found");
+                return Unauthorized(new { message = "User ID not found" });
 
             _logger.LogInformation("Creating checkout session for user {UserId}, blueprint {BlueprintId}", userId, request.BlueprintId);
 
@@ -74,7 +74,7 @@ public class CheckoutController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.SessionId))
-            return BadRequest("Session ID is required");
+            return BadRequest(new { message = "Session ID is required" });
 
         try
         {
@@ -115,7 +115,7 @@ public class CheckoutController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.EventType))
-            return BadRequest("Invalid webhook payload");
+            return BadRequest(new { message = "Invalid webhook payload" });
 
         try
         {

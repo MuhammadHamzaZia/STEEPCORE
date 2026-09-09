@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 
 namespace STEEPCOREAPI.Middleware;
 
@@ -7,11 +6,13 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly IHostEnvironment _env;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger, IHostEnvironment env)
     {
         _next = next;
         _logger = logger;
+        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -20,81 +21,36 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            _logger.LogError(exception, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, exception);
+            _logger.LogError(ex, "API Error: {Message}", ex.Message);
+            await HandleExceptionAsync(context, ex, _env.IsDevelopment());
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static Task HandleExceptionAsync(HttpContext context, Exception ex, bool isDev)
     {
         context.Response.ContentType = "application/json";
 
-        var response = new ErrorResponseDto();
-
-        switch (exception)
+        var statusCode = ex switch
         {
-            case ArgumentNullException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.StatusCode = 400;
-                response.Message = "One or more required arguments are null";
-                break;
+            ArgumentException => (int)HttpStatusCode.BadRequest,
+            UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
+            KeyNotFoundException => (int)HttpStatusCode.NotFound,
+            InvalidOperationException => (int)HttpStatusCode.BadRequest,
+            _ => (int)HttpStatusCode.InternalServerError
+        };
 
-            case ArgumentException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.StatusCode = 400;
-                response.Message = exception.Message;
-                break;
+        context.Response.StatusCode = statusCode;
 
-            case UnauthorizedAccessException:
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                response.StatusCode = 401;
-                response.Message = "Unauthorized access";
-                break;
-
-            case InvalidOperationException:
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                response.StatusCode = 400;
-                response.Message = exception.Message;
-                break;
-
-            case KeyNotFoundException:
-                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                response.StatusCode = 404;
-                response.Message = "Resource not found";
-                break;
-
-            case OperationCanceledException:
-                context.Response.StatusCode = (int)HttpStatusCode.RequestTimeout;
-                response.StatusCode = 408;
-                response.Message = "Request timeout";
-                break;
-
-            default:
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                response.StatusCode = 500;
-                response.Message = "An internal server error occurred";
-                response.Detail = exception.Message;
-                response.InnerError = exception.InnerException?.Message;
-                response.StackTrace = exception.StackTrace;
-                break;
-        }
-
-        response.TraceId = context.TraceIdentifier;
-        response.Timestamp = DateTime.UtcNow;
+        var response = new
+        {
+            message = isDev || statusCode != 500 ? ex.Message : "An unexpected error occurred.",
+            status = statusCode,
+            // Only include stack trace in development mode for easier debugging
+            details = isDev ? ex.StackTrace : null
+        };
 
         return context.Response.WriteAsJsonAsync(response);
     }
-}
-
-public class ErrorResponseDto
-{
-    public int StatusCode { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? Detail { get; set; }
-    public string? InnerError { get; set; }
-    public string? StackTrace { get; set; }
-    public string? TraceId { get; set; }
-    public DateTime Timestamp { get; set; }
 }

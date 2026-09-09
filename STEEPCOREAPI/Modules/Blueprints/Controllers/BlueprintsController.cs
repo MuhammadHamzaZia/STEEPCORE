@@ -27,7 +27,7 @@ public class BlueprintsController : ControllerBase
     public async Task<ActionResult<BlueprintResponseDto>> GetBlueprint(Guid id, CancellationToken cancellationToken)
     {
         if (id == Guid.Empty)
-            return BadRequest("Invalid blueprint ID");
+            return BadRequest(new { message = "Invalid blueprint ID" });
 
         try
         {
@@ -53,13 +53,13 @@ public class BlueprintsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Title))
-            return BadRequest("Title is required");
+            return BadRequest(new { message = "Title is required" });
 
         try
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User not found");
+                return Unauthorized(new { message = "User not found" });
 
             var blueprint = new Blueprint
             {
@@ -146,7 +146,7 @@ public class BlueprintsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query) || limit < 1 || limit > 20)
-            return BadRequest("Invalid query or limit");
+            return BadRequest(new { message = "Invalid query or limit" });
 
         try
         {
@@ -175,7 +175,7 @@ public class BlueprintsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (pageSize < 1 || pageSize > 50)
-            return BadRequest("Invalid page size");
+            return BadRequest(new { message = "Invalid page size" });
 
         try
         {
@@ -198,13 +198,13 @@ public class BlueprintsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (id == Guid.Empty || request == null)
-            return BadRequest("Invalid blueprint ID or request");
+            return BadRequest(new { message = "Invalid blueprint ID or request" });
 
         try
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User not found");
+                return Unauthorized(new { message = "User not found" });
 
             var existing = await _service.GetBlueprintByIdAsync(id, cancellationToken);
             if (existing == null)
@@ -234,13 +234,13 @@ public class BlueprintsController : ControllerBase
     public async Task<IActionResult> DeleteBlueprint(Guid id, CancellationToken cancellationToken)
     {
         if (id == Guid.Empty)
-            return BadRequest("Invalid blueprint ID");
+            return BadRequest(new { message = "Invalid blueprint ID" });
 
         try
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User not found");
+                return Unauthorized(new { message = "User not found" });
 
             var blueprint = await _service.GetBlueprintByIdAsync(id, cancellationToken);
             if (blueprint == null)

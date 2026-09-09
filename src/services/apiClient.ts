@@ -68,12 +68,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      const msg =
-        (errData.error && typeof errData.error.message === 'string' && errData.error.message) ||
-        (typeof errData.message === 'string' && errData.message) ||
-        (typeof errData.error === 'string' && errData.error) ||
-        (typeof errData.title === 'string' && errData.title) ||
-        `Request failed with status ${response.status} at ${url}`;
+      
+      let msg = '';
+      if (errData.errors && typeof errData.errors === 'object') {
+        if (Array.isArray(errData.errors) && errData.errors.length > 0 && typeof errData.errors[0] === 'object') {
+            // Handle ASP.NET Identity errors array [{code: "...", description: "..."}]
+            msg = errData.errors.map((e: any) => e.description || JSON.stringify(e)).join(', ');
+        } else {
+            // Handle standard ASP.NET ModelState errors { Field: ["Error1", "Error2"] }
+            msg = Object.values(errData.errors).flat().join(', ');
+        }
+      } else {
+        msg =
+          (errData.error && typeof errData.error.message === 'string' && errData.error.message) ||
+          (typeof errData.message === 'string' && errData.message) ||
+          (typeof errData.error === 'string' && errData.error) ||
+          (typeof errData.title === 'string' && errData.title) ||
+          `Request failed with status ${response.status}`;
+      }
       
       if (response.status === 503) {
         throw new Error('STEEPCOREAPI AI service is currently busy or warming up (503 Service Unavailable). Please try again in a few seconds.');

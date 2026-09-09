@@ -39,16 +39,16 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
 
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest("Email and password are required");
+            return BadRequest(new { message = "Email and password are required" });
 
         if (request.Password.Length < 8)
-            return BadRequest("Password must be at least 8 characters");
+            return BadRequest(new { message = "Password must be at least 8 characters" });
 
         try
         {
             var user = new ApplicationUser
             {
-                UserName = request.Email,
+                UserName = request.FullName ?? request.Email,
                 Email = request.Email,
                 FullName = request.FullName ?? request.Email
             };
@@ -72,13 +72,14 @@ public class AuthController : ControllerBase
             {
                 Message = "User registered successfully",
                 Email = user.Email,
-                UserId = user.Id
+                UserId = user.Id,
+                Token = token
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration");
-            return StatusCode(500, "Error during registration");
+            return StatusCode(500, new { message = "Error during registration" });
         }
     }
 
@@ -87,22 +88,22 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest("Email and password are required");
+            return BadRequest(new { message = "Email and password are required" });
 
         try
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await _userManager.FindByEmailAsync(request.Email) ?? await _userManager.FindByNameAsync(request.Email);
             if (user == null)
             {
                 _logger.LogWarning($"Login attempt for non-existent user: {request.Email}");
-                return Unauthorized("Invalid email or password");
+                return Unauthorized(new { message = "Invalid email or password" });
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
             if (!result.Succeeded)
             {
                 _logger.LogWarning($"Failed login attempt for user: {request.Email}");
-                return Unauthorized("Invalid email or password");
+                return Unauthorized(new { message = "Invalid email or password" });
             }
 
             var token = GenerateJwtToken(user);
@@ -114,13 +115,14 @@ public class AuthController : ControllerBase
             {
                 Message = "Logged in successfully",
                 Email = user.Email,
-                UserId = user.Id
+                UserId = user.Id,
+                Token = token
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login");
-            return StatusCode(500, "Error during login");
+            return StatusCode(500, new { message = "Error during login" });
         }
     }
 
@@ -132,7 +134,7 @@ public class AuthController : ControllerBase
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
 
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized("User not found in token");
+            return Unauthorized(new { message = "User not found in token" });
 
         try
         {
@@ -144,13 +146,14 @@ public class AuthController : ControllerBase
             {
                 Message = "Token refreshed successfully",
                 Email = email ?? string.Empty,
-                UserId = userId
+                UserId = userId,
+                Token = token
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error refreshing token");
-            return StatusCode(500, "Error refreshing token");
+            return StatusCode(500, new { message = "Error refreshing token" });
         }
     }
 
@@ -184,9 +187,9 @@ public class AuthController : ControllerBase
 
     private string GenerateJwtToken(ApplicationUser user)
     {
-        var jwtSecret = _configuration["Jwt:Secret"];
-        var jwtIssuer = _configuration["Jwt:Issuer"];
-        var jwtAudience = _configuration["Jwt:Audience"];
+        var jwtSecret = _configuration["Jwt:Secret"] ?? _configuration["JWT_SECRET"];
+        var jwtIssuer = _configuration["Jwt:Issuer"] ?? _configuration["JWT_ISSUER"] ?? "https://steepcoreapi.onrender.com";
+        var jwtAudience = _configuration["Jwt:Audience"] ?? _configuration["JWT_AUDIENCE"] ?? "SteepCoreAPI";
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60");
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!));
@@ -231,6 +234,7 @@ public class AuthResponseDto
     public string Message { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
 }
 
 #endregion
