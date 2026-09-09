@@ -39,6 +39,8 @@ export interface Blueprint {
   aiPromptUsed?: string; // If ai_generated, the prompt that created it
   
   nodesCount: number;
+  nodes?: FlowchartNode[];
+  edges?: any[];
   createdAt: string;
   updatedAt: string;
 
