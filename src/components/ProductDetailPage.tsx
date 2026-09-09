@@ -264,7 +264,7 @@ def init_db():
                 <h2 className="text-xl font-semibold text-fg-default">User Reviews</h2>
                 <div className="flex items-center gap-2">
                   <Star size={20} className="text-yellow-500 fill-yellow-500" />
-                  <span className="text-xl font-bold text-fg-default">{(blueprint.rating || 0).toFixed(1)}</span>
+                  <span className="text-xl font-bold text-fg-default">{blueprint.rating.toFixed(1)}</span>
                   <span className="text-fg-muted">({blueprint.starsCount} reviews)</span>
                 </div>
               </div>
@@ -345,7 +345,7 @@ def init_db():
               <div>
                 <span className="block text-fg-muted mb-2">Core Technologies</span>
                 <div className="flex flex-wrap gap-2">
-                  {(blueprint.techStack || []).map(tech => (
+                  {blueprint.techStack.map(tech => (
                     <span key={tech} className="px-2.5 py-1 rounded bg-canvas-inset border border-border-default text-fg-default font-mono text-xs">{tech}</span>
                   ))}
                 </div>
@@ -361,8 +361,8 @@ def init_db():
               <div className="flex items-center justify-between py-2 border-t border-border-default">
                 <span className="text-fg-muted">Creator</span>
                 <div className="flex items-center gap-2">
-                  <img src={blueprint?.creator?.avatar} alt={blueprint?.creator?.name} className="w-5 h-5 rounded-full border border-border-default" />
-                  <a href="#" className="font-medium text-action-accent hover:underline">{blueprint?.creator?.name}</a>
+                  <img src={blueprint.creator.avatar} alt={blueprint.creator.name} className="w-5 h-5 rounded-full border border-border-default" />
+                  <a href="#" className="font-medium text-action-accent hover:underline">{blueprint.creator.name}</a>
                 </div>
               </div>
             </div>

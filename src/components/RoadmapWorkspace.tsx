@@ -123,11 +123,8 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
 
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true }, eds)), [setEdges]);
 
-  const hasGeneratedRef = useRef(false);
-
   useEffect(() => {
-    if (initialRole && !hasGeneratedRef.current) {
-      hasGeneratedRef.current = true;
+    if (initialRole) {
       generateRoadmap(initialRole);
     } else if (initialBlueprintId) {
       loadBlueprint(initialBlueprintId);
@@ -143,7 +140,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
           const initialNodes: Node[] = bpNodes.map((n: any) => ({
             id: String(n.id),
             type: 'editable',
-            position: { x: typeof n.positionX === 'number' ? n.positionX : Math.random() * 500, y: typeof n.positionY === 'number' ? n.positionY : Math.random() * 500 },
+            position: { x: n.positionX || Math.random() * 500, y: n.positionY || Math.random() * 500 },
             data: {
               label: n.label,
               type: n.type || 'topic',
@@ -188,7 +185,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
             type: n.type || 'topic',
             description: n.description || '',
           },
-          position: (typeof n.positionX === 'number' && typeof n.positionY === 'number') ? { x: n.positionX, y: n.positionY } : (n.coordinates || { x: (idx % 3) * 240 + 50, y: Math.floor(idx / 3) * 160 + 50 }),
+          position: n.coordinates || (n.positionX !== undefined && n.positionY !== undefined && (n.positionX !== 0 || n.positionY !== 0) ? { x: n.positionX, y: n.positionY } : { x: (idx % 3) * 240 + 50, y: Math.floor(idx / 3) * 160 + 50 }),
         }));
         const formattedEdges: Edge[] = (aiData.edges || []).map((e: any, idx: number) => ({
           id: String(e.id || `edge-${idx}`),

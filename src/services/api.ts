@@ -4,20 +4,7 @@ import { apiClient } from './apiClient';
 
 export const api = {
   getMyBlueprints: async (): Promise<Blueprint[]> => {
-    try {
-      const data = await apiClient.get<any[]>('/api/blueprints/me');
-      if (Array.isArray(data) && data.length > 0) return data.map((bp: any) => ({
-  ...bp,
-  id: String(bp.id),
-  rating: bp.rating || 0,
-  starsCount: bp.starsCount || 0,
-  price: bp.price || 0,
-  techStack: bp.techStack || [],
-  nodesCount: bp.nodes?.length || 0,
-  creator: { name: bp.creatorName || bp.creator?.name || 'STEEPCORE', avatar: bp.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-}));
-    } catch (e) {}
-    return mockBlueprints.filter(b => b.creatorId === 'user-1');
+    return apiClient.get<Blueprint[]>('/api/blueprints/me');
   },
   // System Health
   async checkHealth(): Promise<{ status: string }> {
@@ -47,63 +34,38 @@ export const api = {
     async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
     try {
       const data = await apiClient.get<any[]>('/api/Blueprints/published');
-      if (Array.isArray(data) && data.length > 0) {
-        let formatted = data.map((bp: any) => ({
-  ...bp,
-  id: String(bp.id),
-  rating: bp.rating || 0,
-  starsCount: bp.starsCount || 0,
-  price: bp.price || 0,
-  techStack: bp.techStack || [],
-  nodesCount: bp.nodes?.length || 0,
-  creator: { name: bp.creatorName || bp.creator?.name || 'STEEPCORE', avatar: bp.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-}));
+      if (Array.isArray(data)) {
+        let formatted = data.map(item => ({
+          ...item,
+          id: String(item.id),
+          nodesCount: item.nodes?.length || 0,
+          creator: { name: item.creatorName || 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
+        }));
         if (domainFilter && domainFilter !== 'all') {
           formatted = formatted.filter((bp: any) => bp.domain === domainFilter);
         }
         return formatted;
       }
     } catch (e) {
-      console.error('Failed to fetch blueprints, using dummy data.');
+      console.error(e);
     }
-    let fallback = mockBlueprints;
-    if (domainFilter && domainFilter !== 'all') {
-      fallback = fallback.filter((bp: any) => bp.domain === domainFilter);
-    }
-    return fallback;
+    return [];
   },
   async getTrendingBlueprints(limit: number = 3): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<any[]>(`/api/Blueprints/trending?limit=${limit}`);
-      if (Array.isArray(data) && data.length > 0) return data.map((bp: any) => ({
-  ...bp,
-  id: String(bp.id),
-  rating: bp.rating || 0,
-  starsCount: bp.starsCount || 0,
-  price: bp.price || 0,
-  techStack: bp.techStack || [],
-  nodesCount: bp.nodes?.length || 0,
-  creator: { name: bp.creatorName || bp.creator?.name || 'STEEPCORE', avatar: bp.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-}));
-    } catch (e) {}
-    return [...mockBlueprints].sort((a, b) => b.starsCount - a.starsCount).slice(0, limit);
+      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/trending?limit=${limit}`);
+      return data;
+    } catch (e) {
+      return [];
+    }
   },
   async searchBlueprints(term: string): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<any[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
-      if (Array.isArray(data) && data.length > 0) return data.map((bp: any) => ({
-  ...bp,
-  id: String(bp.id),
-  rating: bp.rating || 0,
-  starsCount: bp.starsCount || 0,
-  price: bp.price || 0,
-  techStack: bp.techStack || [],
-  nodesCount: bp.nodes?.length || 0,
-  creator: { name: bp.creatorName || bp.creator?.name || 'STEEPCORE', avatar: bp.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
-}));
-    } catch (e) {}
-    const q = term.toLowerCase();
-    return mockBlueprints.filter(b => b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || (b.techStack || []).some(t => t.toLowerCase().includes(q)));
+      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
+      return data;
+    } catch (e) {
+      return [];
+    }
   },
   async getQuickSuggestions(): Promise<string[]> {
     try {
@@ -122,14 +84,14 @@ export const api = {
   async getBlueprintById(id: string): Promise<Blueprint | undefined> {
     try {
       const data = await apiClient.get<any>(`/api/Blueprints/${id}`);
-      if (data && data.id) {
-        const formatted = { ...data, id: String(data.id), rating: data.rating || 0, starsCount: data.starsCount || 0, price: data.price || 0, techStack: data.techStack || [], nodesCount: data.nodes?.length || 0, creator: { name: data.creatorName || data.creator?.name || 'STEEPCORE', avatar: data.creator?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' } };
-        return formatted;
+      if (data) {
+        data.nodesCount = data.nodes?.length || 0;
+        return data;
       }
     } catch (e) {
-      console.error('Failed to fetch blueprint by id, using dummy data.');
+      console.error(e);
     }
-    return mockBlueprints.find(b => String(b.id) === String(id));
+    return undefined;
   },
   async getNodesByBlueprintId(blueprintId: string): Promise<FlowchartNode[]> {
     try {
@@ -160,78 +122,24 @@ export const api = {
   async generateAiBlueprint(params: { prompt: string }) {
     try {
       const res = await apiClient.post<any>(`/api/Ai/generate?_t=${Date.now()}`, { prompt: params.prompt });
-      if (res && res.nodes) return res;
-      throw new Error('Fallback to dummy data');
+      return res;
     } catch (error: any) {
-      console.warn('Live AI endpoint returned error or unavailable, using dummy data.');
-      return {
-        nodes: [
-          { id: 'n1', title: 'Start: ' + params.prompt, type: 'topic', positionX: 250, positionY: 100 },
-          { id: 'n2', title: 'Phase 1 Research', type: 'task', positionX: 100, positionY: 250 },
-          { id: 'n3', title: 'Phase 1 Implementation', type: 'task', positionX: 400, positionY: 250 }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n2' },
-          { id: 'e1-2', source: 'n1', target: 'n3' }
-        ]
-      };
+      console.warn('Live AI endpoint returned error or unavailable:', error);
+      throw error;
     }
   },
 
   // CRUD Blueprints
   async createBlueprint(payload: { title: string; description: string; domain?: string; nodes?: any[]; edges?: any[] }) {
-    try {
-      return await apiClient.post('/api/Blueprints', payload);
-    } catch (e) {
-      const newBp = {
-        id: 'mock-' + Date.now(),
-        title: payload.title,
-        slug: payload.title.toLowerCase().replace(/\s+/g, '-'),
-        description: payload.description,
-        domain: payload.domain || 'other',
-        price: 0,
-        isFree: true,
-        rating: 5.0,
-        starsCount: 0,
-        techStack: [],
-        creatorId: 'user-1',
-        source: 'community' as any,
-        isPublished: true,
-        version: '1.0.0',
-        allowDataTraining: true,
-        nodesCount: payload.nodes?.length || 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        creator: { name: 'Local User', avatar: 'https://images.unsplash.com/photo-1534528741775?auto=format&fit=crop&w=100&q=80' }
-      };
-      mockBlueprints.unshift(newBp);
-      if (payload.nodes) {
-        payload.nodes.forEach(n => mockNodes.push({ ...n, blueprintId: newBp.id }));
-      }
-      return { id: newBp.id };
-    }
+    return apiClient.post('/api/Blueprints', payload);
   },
 
   async updateBlueprint(id: string, payload: any) {
-    try {
-      return await apiClient.put(`/api/Blueprints/${id}`, payload);
-    } catch (e) {
-      const idx = mockBlueprints.findIndex(b => String(b.id) === String(id));
-      if (idx !== -1) {
-        mockBlueprints[idx] = { ...mockBlueprints[idx], ...payload, updatedAt: new Date().toISOString() };
-      }
-      return { success: true };
-    }
+    return apiClient.put(`/api/Blueprints/${id}`, payload);
   },
 
   async deleteBlueprint(id: string) {
-    try {
-      return await apiClient.delete(`/api/Blueprints/${id}`);
-    } catch (e) {
-      const idx = mockBlueprints.findIndex(b => String(b.id) === String(id));
-      if (idx !== -1) mockBlueprints.splice(idx, 1);
-      return { success: true };
-    }
+    return apiClient.delete(`/api/Blueprints/${id}`);
   },
 
   // Checkout Module

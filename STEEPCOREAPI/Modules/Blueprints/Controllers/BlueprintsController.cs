@@ -5,7 +5,7 @@ using STEEPCOREAPI.Modules.Blueprints.DTOs;
 using STEEPCOREAPI.Modules.Blueprints.Models;
 using STEEPCOREAPI.Shared.Interfaces;
 using STEEPCOREAPI.Shared.Models;
-using STEEPCOREAPI.Shared.Database;
+using STEEPCOREAPI.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace STEEPCOREAPI.Modules.Blueprints.Controllers;

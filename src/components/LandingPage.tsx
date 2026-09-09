@@ -255,7 +255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-canvas-inset border border-border-default text-fg-muted">
-                        👤 @{bp?.creator?.name}
+                        👤 @{bp.creator.name}
                       </span>
                     )}
                     <button
@@ -270,11 +270,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                   </div>
                 </div>
                 <div className="p-4 flex flex-col flex-1">
-                  <div className="text-xs text-fg-muted font-mono mb-1">{bp?.creator?.name}/{bp.slug}</div>
+                  <div className="text-xs text-fg-muted font-mono mb-1">{bp.creator.name}/{bp.slug}</div>
                   <h3 className="font-semibold text-fg-default text-base mb-3 group-hover:text-action-accent transition-colors">{bp.title}</h3>
                   
                   <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
-                    {(bp.techStack || []).slice(0, 3).map(tech => (
+                    {bp.techStack.slice(0, 3).map(tech => (
                       <span key={tech} className="px-2 py-0.5 rounded text-[10px] font-mono bg-canvas-inset border border-border-default text-fg-muted">{tech}</span>
                     ))}
                   </div>
@@ -282,7 +282,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-default">
                     <div className="flex items-center gap-1.5 text-xs text-fg-muted">
                       <Star size={14} className="text-yellow-500 fill-yellow-500/20" />
-                      <span>{(bp.rating || 0).toFixed(1)}</span>
+                      <span>{bp.rating.toFixed(1)}</span>
                       <span>({bp.starsCount})</span>
                     </div>
                     {bp.isFree ? (

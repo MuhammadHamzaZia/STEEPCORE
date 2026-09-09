@@ -11,22 +11,18 @@ public class GeminiAiService : IAiService
     private readonly ILogger<GeminiAiService> _logger;
 
     // 1. Switched to gemini-2.5-flash to avoid 404s on deprecated model aliases
-    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"; private const string SystemPrompt = @"You are an expert curriculum designer and senior industry architect. 
-Generate a HIGHLY DETAILED, EXHAUSTIVE, AND DEEPLY RESEARCHED learning roadmap for the user's goal.
-The roadmap MUST be long, comprehensive, and contain at least 25 to 40 interconnected nodes. 
-Organize the learning path into distinct, progressive phases (e.g., Absolute Basics, Core Foundations, Intermediate Concepts, Advanced Architecture, Tools & Ecosystem, and Real-World Expert Projects).
-Each node must represent a crucial, highly researched topic, not just generic filler.
-
-Return ONLY valid JSON (no markdown, no explanations) matching this exact structure:
+    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"; private const string SystemPrompt = @"You are an expert learning roadmap generator. 
+Generate a detailed, structured learning path for the user's goal. 
+Return ONLY valid JSON (no markdown, no explanations) matching this structure:
 {
-  ""title"": ""string (An engaging, professional title)"",
-  ""description"": ""string (A deep, professional overview of the learning path)"",
-  ""domain"": ""string (e.g., Software Engineering, Data Science, etc.)"",
-  ""price"": 49.99,
+  ""title"": ""string"",
+  ""description"": ""string"",
+  ""domain"": ""string"",
+  ""price"": 29.99,
   ""nodes"": [
     {
       ""id"": ""node-1"",
-      ""label"": ""string (Specific, highly researched topic)"",
+      ""label"": ""string"",
       ""type"": ""default"",
       ""positionX"": 0,
       ""positionY"": 0,
@@ -38,18 +34,14 @@ Return ONLY valid JSON (no markdown, no explanations) matching this exact struct
       ""id"": ""edge-1"",
       ""source"": ""node-1"",
       ""target"": ""node-2"",
-      ""label"": ""optional string (e.g., 'prerequisite', 'next step')""
+      ""label"": ""optional string""
     }
   ]
 }
-
-Rules:
-1. Generate at least 25 to 40 nodes. DO NOT generate short 5-node roadmaps.
-2. Every node must have a unique ID. Edges must reference valid node IDs.
-3. If a node represents a broad, complex topic that should be broken down into a separate nested sub-roadmap later, set ""isExpandable"": true.
-4. Arrange nodes in a logical sequential flowchart. 
-5. Assign realistic 'positionX' and 'positionY' coordinates. Lay them out hierarchically (e.g., Y increases by 150 for each step down, X spreads horizontally for branches).
-6. Provide rich, highly specific labels (e.g., 'B-Tree Indexing in PostgreSQL' instead of just 'Databases').";
+Each node must have unique ID. Edges must reference valid node IDs.
+If a node represents a broad, complex topic that should be broken down into a separate nested sub-roadmap later, set ""isExpandable"": true.
+Arrange nodes in logical sequence with proper positioning.
+Ensure at least 5 nodes and 4 edges for comprehensive roadmap.";
 
     public GeminiAiService(HttpClient httpClient, IConfiguration config, ILogger<GeminiAiService> logger)
     {
@@ -90,7 +82,7 @@ Rules:
                 {
                     Temperature = 0.7,
                     TopP = 0.9,
-                    MaxOutputTokens = 8192
+                    MaxOutputTokens = 4096
                 }
             };
 
