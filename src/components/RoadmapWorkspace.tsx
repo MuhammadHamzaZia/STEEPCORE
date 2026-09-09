@@ -123,8 +123,11 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
 
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true }, eds)), [setEdges]);
 
+  const hasGeneratedRef = useRef(false);
+
   useEffect(() => {
-    if (initialRole) {
+    if (initialRole && !hasGeneratedRef.current) {
+      hasGeneratedRef.current = true;
       generateRoadmap(initialRole);
     } else if (initialBlueprintId) {
       loadBlueprint(initialBlueprintId);

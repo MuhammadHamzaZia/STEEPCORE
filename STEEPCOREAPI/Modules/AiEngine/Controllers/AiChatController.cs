@@ -39,7 +39,7 @@ public class AiChatController : ControllerBase
             generationConfig = new { temperature = 0.7 }
         };
 
-        var response = await CallGeminiApi("gemini-3.5-flash", payload, apiKey);
+        var response = await CallGeminiApi("gemini-1.5-pro", payload, apiKey);
         if (response == null) return StatusCode(502, new { text = "Failed to communicate with AI." });
 
         return Ok(new { text = ExtractTextFromGemini(response) });
@@ -52,27 +52,31 @@ public class AiChatController : ControllerBase
         if (string.IsNullOrEmpty(apiKey)) return StatusCode(500, new { error = "GEMINI_API_KEY is not set" });
 
         var promptInstruction = req.ExpansionType switch {
-            "detailed" => "Please generate a detailed hierarchical structure (phases -> topics -> concepts/courses) branching from this node. Return it as 'phases' array.",
-            "tools" => "Please generate a list of essential tools, frameworks, or software required for this node. Return it as 'newNodes' array.",
-            "projects" => "Please generate a list of practical project ideas to master the skills in this node. Return it as 'newNodes' array.",
-            "resources" => "Please generate a list of recommended learning resources (books, courses, docs) for this node. Return it as 'newNodes' array.",
-            "interview" => "Please generate a list of common interview questions or topics related to this node. Return it as 'newNodes' array.",
-            _ => "Please generate a flat list of sub-topics or concepts for this specific node. Return it as 'newNodes' array."
+            "detailed" => "Provide an EXHAUSTIVE, university-grade deep dive. Break this topic into foundational concepts, advanced mechanisms, and expert-level nuances. Return a massive, highly researched 'phases' array containing rich descriptions.",
+            "tools" => "List the absolute industry-standard tools, frameworks, and hidden enterprise software used by Senior Engineers for this topic. Explain WHY they are used. Return it as a highly detailed 'newNodes' array.",
+            "projects" => "Generate highly complex, resume-worthy project ideas that solve real-world problems. Skip simple 'todo apps'. Return architecture requirements and learning outcomes for each project as a 'newNodes' array.",
+            "resources" => "List the absolute best learning resources available globally: definitive textbooks, official documentation, whitepapers, and top-tier courses. Return it as a 'newNodes' array.",
+            "interview" => "Generate the most difficult, system-design and theoretical interview questions asked by FAANG-level companies regarding this topic. Include the expected expert answers. Return it as a 'newNodes' array.",
+            _ => "Provide a highly technical and completely comprehensive breakdown of this topic into exhaustive sub-topics. Return it as a 'newNodes' array."
         };
 
-        var prompt = $@"The user wants to expand on a specific node in their learning roadmap.
+        var prompt = $@"You are a Senior Principal Architect and elite Curriculum Designer. The user wants to expand on a specific node in their learning roadmap.
         Node Label: {req.NodeLabel}
         Node Type: {req.NodeType}
         User Request: {req.PromptContext}
         Expansion Level: {req.ExpansionType}
-        {promptInstruction}";
+        
+        INSTRUCTION: {promptInstruction}
+        
+        IMPORTANT: Your output MUST be highly researched, extremely long and detailed, and perfectly accurate. 
+        Format your response EXCLUSIVELY as a JSON object matching the requested array key ('phases' or 'newNodes'). Ensure the JSON contains deeply rich text fields.";
 
         var payload = new {
             contents = new[] { new { role = "user", parts = new[] { new { text = prompt } } } },
             generationConfig = new { temperature = 0.7, responseMimeType = "application/json" }
         };
 
-        var response = await CallGeminiApi("gemini-3.5-flash", payload, apiKey);
+        var response = await CallGeminiApi("gemini-1.5-pro", payload, apiKey);
         if (response == null) return StatusCode(502, new { error = "Failed to communicate with AI." });
 
         var textResponse = ExtractTextFromGemini(response);
