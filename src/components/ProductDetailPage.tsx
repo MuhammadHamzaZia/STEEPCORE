@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ExternalLink, Sparkles, Check, Star, ShieldCheck, Download, Code, GitBranch, Loader2, Lock } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
 import { Blueprint, FlowchartNode } from '../types/schema';
 
 export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?: () => void }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const { selectedBlueprintId } = useUIStore();
+  const { selectedBlueprintId, setIsAuthModalOpen } = useUIStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { activeRoadmaps, markNodeCompleted } = useLibraryStore();
   
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
@@ -63,13 +65,22 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
 
   const handlePurchaseOrOpen = async () => {
     if (!canAccess) {
+      if (!isAuthenticated) {
+        setIsAuthModalOpen(true);
+        return;
+      }
+      
       if (isAccessRequested) return;
       setIsProcessingCheckout(true);
-      // Simulate API call to request access
-      setTimeout(() => {
+      
+      try {
+        await api.requestBlueprintAccess(blueprint.id);
         setIsAccessRequested(true);
+      } catch (err) {
+        console.error("Error requesting access:", err);
+      } finally {
         setIsProcessingCheckout(false);
-      }, 1000);
+      }
       return;
     }
     if (onNavigateToEditor) {

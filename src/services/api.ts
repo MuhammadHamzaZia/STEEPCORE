@@ -39,6 +39,9 @@ export const api = {
           id: String(item.id),
           nodesCount: item.nodes?.length || 0,
           creator: { name: item.creatorName || 'STEEPCORE' }
+        })).map(bp => ({
+          ...bp,
+          price: (bp.creator.name === 'STEEPCORE' || bp.creator.name === 'System' || bp.creator.name === 'Unknown') ? 0 : bp.price
         }));
         if (domainFilter && domainFilter !== 'all') {
           formatted = formatted.filter((bp: any) => bp.domain === domainFilter);
@@ -52,7 +55,11 @@ export const api = {
   },
   async getTrendingBlueprints(limit: number = 3): Promise<Blueprint[]> {
     try {
-      return await apiClient.get<Blueprint[]>(`/api/Blueprints/trending?limit=${limit}`);
+      const data = await apiClient.get<any[]>(`/api/Blueprints/trending?limit=${limit}`);
+      return data.map(bp => ({
+        ...bp,
+        price: (bp.creatorName === 'STEEPCORE' || bp.creatorName === 'System' || bp.creatorName === 'Unknown' || !bp.creatorName) ? 0 : bp.price
+      }));
     } catch (e) {
       return [];
     }
@@ -84,6 +91,9 @@ export const api = {
       if (data) {
         data.nodesCount = data.nodes?.length || 0;
         data.creator = { name: data.creatorName || 'STEEPCORE' };
+        if (data.creator.name === 'STEEPCORE' || data.creator.name === 'System' || data.creator.name === 'Unknown') {
+          data.price = 0;
+        }
         return data;
       }
     } catch (e) {
@@ -138,6 +148,10 @@ export const api = {
 
   async deleteBlueprint(id: string) {
     return apiClient.delete(`/api/Blueprints/${id}`);
+  },
+
+  async requestBlueprintAccess(blueprintId: string) {
+    return apiClient.post('/api/AccessRequests', { blueprintId });
   },
 
   // Checkout Module

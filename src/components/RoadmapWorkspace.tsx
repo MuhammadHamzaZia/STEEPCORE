@@ -25,6 +25,8 @@ import { api } from '../services/api';
 import { apiClient } from '../services/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
+import { jsPDF } from 'jspdf';
+import { toPng } from 'html-to-image';
 
 const nodeTypes = {
   editable: EditableNode,
@@ -120,7 +122,37 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
     }
   };
 
-  const openSaveModal = () => {
+  
+  const handleDownloadPdf = async () => {
+    const element = document.querySelector('.react-flow') as HTMLElement;
+    if (!element) return;
+    
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#0d1117',
+        pixelRatio: 2,
+        filter: (node) => {
+          if (node.classList?.contains('react-flow__minimap') || node.classList?.contains('react-flow__controls')) {
+            return false;
+          }
+          return true;
+        }
+      });
+      
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [element.offsetWidth, element.offsetHeight]
+      });
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, element.offsetWidth, element.offsetHeight);
+      pdf.save(`${currentBlueprintId ? 'blueprint-' + currentBlueprintId : 'roadmap'}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    }
+  };
+
+const openSaveModal = () => {
     // Check login
     if (!isAuthenticated) {
         setIsAuthModalOpen(true);
@@ -312,6 +344,9 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
         </div>
         
         <div className="flex items-center gap-2">
+          <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
+            <Download className="w-4 h-4" /> Download PDF
+          </button>
           <button onClick={onLayout} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
             <Grid className="w-4 h-4" /> Layout
           </button>
