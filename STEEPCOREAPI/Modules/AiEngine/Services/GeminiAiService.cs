@@ -10,8 +10,8 @@ public class GeminiAiService : IAiService
     private readonly IConfiguration _config;
     private readonly ILogger<GeminiAiService> _logger;
 
-    // 1. Switched to gemini-2.5-flash to avoid 404s on deprecated model aliases
-    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"; private const string SystemPrompt = @"You are an expert curriculum designer and senior industry architect. 
+    // 1. Switched to gemini-3.6-flash to avoid 404s on deprecated model aliases
+    private const string GeminiGenerateApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"; private const string SystemPrompt = @"You are an expert curriculum designer and senior industry architect. 
 Generate a HIGHLY DETAILED, EXHAUSTIVE, AND DEEPLY RESEARCHED learning roadmap for the user's goal.
 The roadmap MUST be long, comprehensive, and contain at least 25 to 40 interconnected nodes. 
 Organize the learning path into distinct, progressive phases (e.g., Absolute Basics, Core Foundations, Intermediate Concepts, Advanced Architecture, Tools & Ecosystem, and Real-World Expert Projects).

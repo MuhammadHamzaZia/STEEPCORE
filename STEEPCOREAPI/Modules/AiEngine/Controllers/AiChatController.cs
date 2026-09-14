@@ -39,7 +39,7 @@ public class AiChatController : ControllerBase
             generationConfig = new { temperature = 0.7 }
         };
 
-        var response = await CallGeminiApi("gemini-2.5-flash", payload, apiKey);
+        var response = await CallGeminiApi("gemini-3.6-flash", payload, apiKey);
         if (response == null) return StatusCode(502, new { text = "Failed to communicate with AI." });
 
         return Ok(new { text = ExtractTextFromGemini(response) });
@@ -76,7 +76,7 @@ public class AiChatController : ControllerBase
             generationConfig = new { temperature = 0.7, responseMimeType = "application/json" }
         };
 
-        var response = await CallGeminiApi("gemini-2.5-flash", payload, apiKey);
+        var response = await CallGeminiApi("gemini-3.6-flash", payload, apiKey);
         if (response == null) return StatusCode(502, new { error = "Failed to communicate with AI." });
 
         var textResponse = ExtractTextFromGemini(response);
