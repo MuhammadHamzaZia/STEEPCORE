@@ -71,10 +71,19 @@ export const EditableNode = ({ id, data, isConnectable }: NodeProps) => {
 
   return (
     <div 
-      className={cn("relative transition-all text-center group flex items-center justify-center", containerClass)}
+      className={cn(
+        "relative transition-all text-center group flex items-center justify-center", 
+        containerClass,
+        data.isCompleted ? "opacity-60 grayscale-[0.5]" : ""
+      )}
       onDoubleClick={onDoubleClick}
     >
       {bgElement}
+      {data.isCompleted && (
+        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 z-30 shadow-lg border-2 border-[#0d1117]">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+      )}
       
       {type !== 'role' && (
         <Handle 

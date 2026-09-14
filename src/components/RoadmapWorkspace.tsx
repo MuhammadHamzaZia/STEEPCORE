@@ -24,6 +24,7 @@ import { getLayoutedElements } from '../lib/flow';
 import { api } from '../services/api';
 import { apiClient } from '../services/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { useUIStore } from '../store/useUIStore';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
@@ -42,6 +43,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   const reactFlowInstance = useReactFlow();
   const { isAuthenticated } = useAuthStore();
   const { setIsAuthModalOpen } = useUIStore();
+  const { activeRoadmaps, markNodeCompleted, setRoadmapState, initializeRoadmap } = useLibraryStore();
   
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -180,6 +182,19 @@ const openSaveModal = () => {
     try {
       const bp = await api.getBlueprintById(id);
       if (bp) {
+          let fetchedCompletedNodes: string[] = [];
+          try {
+            if (isAuthenticated) {
+              const progressData = await api.getUserProgress(id);
+              if (progressData && Array.isArray(progressData)) {
+                fetchedCompletedNodes = progressData.filter(p => p.status === 'completed').map(p => p.nodeId);
+                const progressPct = bp.nodesCount ? Math.round((fetchedCompletedNodes.length / bp.nodesCount) * 100) : 0;
+                setRoadmapState(id, fetchedCompletedNodes, progressPct);
+              }
+            }
+          } catch(e) {
+            console.error("Failed to load progress", e);
+          }
           setSaveTitle(bp.title || initialRole || 'Custom Roadmap');
           setSaveDesc(bp.description || '');
           setSavePrice(bp.price || 0);
@@ -194,7 +209,8 @@ const openSaveModal = () => {
               label: n.label,
               type: n.type || 'topic',
               description: n.description || '',
-              color: 'default'
+              color: 'default',
+              isCompleted: fetchedCompletedNodes.includes(String(n.id))
             },
           }));
           setNodes(initialNodes);
@@ -460,7 +476,13 @@ const openSaveModal = () => {
             </div>
           )}
           <ReactFlow
-            nodes={nodes}
+            nodes={nodes.map(n => ({
+              ...n,
+              data: {
+                ...n.data,
+                isCompleted: currentBlueprintId && activeRoadmaps[currentBlueprintId]?.completedNodes?.includes(n.id)
+              }
+            }))}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -505,6 +527,32 @@ const openSaveModal = () => {
                 </div>
               </div>
 
+              
+              
+              {currentBlueprintId && activeRoadmaps[currentBlueprintId] && (
+                <div className="pt-4 border-t border-border-default">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-canvas-inset rounded-md transition-colors">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-border-default text-action-primary focus:ring-action-primary"
+                      checked={activeRoadmaps[currentBlueprintId]?.completedNodes?.includes(selectedNode.id) || false}
+                      onChange={async (e) => {
+                        const isChecked = e.target.checked;
+                        markNodeCompleted(currentBlueprintId, selectedNode.id, nodes.length);
+                        try {
+                          await api.toggleNodeProgress(currentBlueprintId, selectedNode.id, isChecked ? 'completed' : 'pending');
+                        } catch(err) {
+                          console.error('Failed to sync progress:', err);
+                        }
+                        
+                        
+                      }}
+                    />
+                    <span className="text-sm font-medium text-fg-default">Mark as Completed</span>
+                  </label>
+                </div>
+              )}
+              
               <div className="pt-4 border-t border-border-default">
                 <button 
                   onClick={deleteSelected}

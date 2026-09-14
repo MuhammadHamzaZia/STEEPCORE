@@ -5,12 +5,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
 import { Blueprint, FlowchartNode } from '../types/schema';
+import { ReactFlow, Background, Controls } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?: () => void }) {
   const [activeTab, setActiveTab] = useState('overview');
   const { selectedBlueprintId, setIsAuthModalOpen } = useUIStore();
   const { isAuthenticated, user } = useAuthStore();
-  const { activeRoadmaps, markNodeCompleted } = useLibraryStore();
+  const { activeRoadmaps, initializeRoadmap } = useLibraryStore();
   
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [nodes, setNodes] = useState<FlowchartNode[]>([]);
@@ -61,7 +63,8 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
 
   const isOwned = activeRoadmaps[blueprint.id] !== undefined;
   const isFree = blueprint.price === 0;
-  const canAccess = isOwned || isFree;
+  const isCreator = user && blueprint?.creator?.name && (user.username === blueprint.creator.name || user.email === blueprint.creator.name);
+  const canAccess = isOwned || isFree || isCreator;
 
   const handlePurchaseOrOpen = async () => {
     if (!canAccess) {
@@ -84,6 +87,7 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
       return;
     }
     if (onNavigateToEditor) {
+      initializeRoadmap(blueprint.id);
       onNavigateToEditor();
     }
   };
@@ -107,19 +111,45 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
           
           {/* Canvas Preview Area */}
           <div className="w-full h-[300px] bg-canvas-inset border border-border-default rounded-lg relative overflow-hidden mb-8 flex items-center justify-center">
-            <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+            {blueprint && (blueprint as any).nodes && (blueprint as any).nodes.length > 0 ? (
+              <ReactFlow 
+                nodes={(blueprint as any).nodes.map((n: any) => ({
+                  id: String(n.id),
+                  position: { x: n.positionX || n.position?.x || 0, y: n.positionY || n.position?.y || 0 },
+                  data: { label: n.label || 'Node' },
+                  type: 'default',
+                  draggable: false
+                }))} 
+                edges={(blueprint as any).edges ? (blueprint as any).edges.map((e: any) => ({
+                  id: String(e.id),
+                  source: String(e.sourceNodeId || e.source),
+                  target: String(e.targetNodeId || e.target),
+                  animated: true
+                })) : []}
+                fitView 
+                proOptions={{ hideAttribution: true }}
+                nodesConnectable={false}
+                elementsSelectable={false}
+                panOnDrag={true}
+                zoomOnScroll={true}
+              >
+                <Background color="#30363d" gap={16} size={1} />
+                <Controls showInteractive={false} />
+              </ReactFlow>
+            ) : (
+              <>
+                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                <div className="relative z-10 flex items-center justify-center h-full w-full opacity-30">
+                  <Sparkles className="w-16 h-16 text-fg-muted" />
+                </div>
+              </>
+            )}
             
-            {/* Decorative Placeholder */}
-            <div className="relative z-10 flex items-center justify-center h-full w-full opacity-30">
-              <Sparkles className="w-16 h-16 text-fg-muted" />
-            </div>
-
-            <div className="absolute top-3 left-3 px-2.5 py-1 bg-canvas-surface/80 backdrop-blur-sm border border-border-default rounded text-[10px] uppercase tracking-wider font-semibold text-fg-muted flex items-center gap-1.5">
-               <GitBranch size={12} />
-               Interactive Preview
+            <div className="absolute top-3 left-3 px-2.5 py-1 bg-canvas-surface/80 backdrop-blur-sm border border-border-default rounded text-[10px] uppercase tracking-wider font-semibold text-fg-muted flex items-center gap-1.5 z-10 pointer-events-none"> 
+              <GitBranch size={12} /> 
+              Interactive Preview
             </div>
           </div>
-
           {/* Title & Creator (Mobile mostly, or top of docs) */}
           <h1 className="text-3xl font-semibold text-fg-default tracking-tight mb-2">{blueprint.title}</h1>
           <p className="text-lg text-fg-muted mb-6">{blueprint.description}</p>
@@ -216,7 +246,7 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
               >
                 {canAccess ? (
                   <>
-                    🚀 Open in Flowchart Editor
+                    🚀 {isCreator ? 'Check and Edit' : 'Open in Flowchart Editor'}
                   </>
                 ) : isProcessingCheckout ? (
                   <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing...</span>

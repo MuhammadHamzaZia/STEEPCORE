@@ -11,6 +11,8 @@ interface LibraryStore {
   activeRoadmaps: Record<string, RoadmapState>;
   toggleBookmark: (id: string) => void;
   markNodeCompleted: (blueprintId: string, nodeId: string, totalNodes: number) => void;
+  initializeRoadmap: (blueprintId: string) => void;
+  setRoadmapState: (blueprintId: string, completedNodes: string[], progress: number) => void;
   resetProgress: (blueprintId: string) => void;
 }
 
@@ -23,6 +25,23 @@ export const useLibraryStore = create<LibraryStore>()(
         savedBlueprintIds: state.savedBlueprintIds.includes(id)
           ? state.savedBlueprintIds.filter(savedId => savedId !== id)
           : [...state.savedBlueprintIds, id]
+      })),
+      initializeRoadmap: (blueprintId) => set((state) => {
+        if (!state.activeRoadmaps[blueprintId]) {
+          return {
+            activeRoadmaps: {
+              ...state.activeRoadmaps,
+              [blueprintId]: { completedNodes: [], progress: 0 }
+            }
+          };
+        }
+        return state;
+      }),
+      setRoadmapState: (blueprintId, completedNodes, progress) => set((state) => ({
+        activeRoadmaps: {
+          ...state.activeRoadmaps,
+          [blueprintId]: { completedNodes, progress }
+        }
       })),
       markNodeCompleted: (blueprintId, nodeId, totalNodes) => set((state) => {
         const roadmap = state.activeRoadmaps[blueprintId] || { completedNodes: [], progress: 0 };
