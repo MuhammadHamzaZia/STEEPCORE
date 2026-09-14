@@ -89,7 +89,7 @@ export default function App() {
           <RoadmapWorkspace initialRole={selectedRole} onBack={handleBackToLanding} />
         )}
         {currentPage === 'product' && (
-          <ProductDetailPage onNavigateToEditor={() => handleNavigate('editor')} />
+          <ProductDetailPage onNavigateToEditor={() => handleNavigate('editor')} onNavigateToCatalog={() => handleNavigate('catalog')} />
         )}
         {currentPage === 'dashboard' && (
           <DashboardPage 

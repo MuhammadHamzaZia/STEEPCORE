@@ -53,7 +53,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#30363d] flex items-center justify-between bg-[#161b22]">
           <div className="flex items-center gap-2">
-            <KeyRound size={20} className="text-[#3fb950]" />
+            <img src="/logo.svg" alt="Steepcore Logo" className="w-5 h-5 object-contain" />
             <h2 className="text-base font-semibold text-[#e6edf3]">
               {mode === 'login' ? 'Sign In to STEEPCORE' : 'Create an Account'}
             </h2>

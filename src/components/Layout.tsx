@@ -57,14 +57,7 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
             </span>
           </div>
 
-          {/* API Health Badge */}
-          <div 
-            title="STEEPCOREAPI Backend Status (https://steepcoreapi.onrender.com)"
-            className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-canvas-inset border border-border-default text-[11px] font-mono text-fg-muted"
-          >
-            <span className={`w-2 h-2 rounded-full ${apiHealth === 'online' ? 'bg-emerald-500 animate-pulse' : apiHealth === 'offline' ? 'bg-rose-500' : 'bg-amber-500 animate-pulse'}`}></span>
-            <span>API: {apiHealth === 'online' ? 'Connected' : apiHealth === 'offline' ? 'Offline' : 'Checking'}</span>
-          </div>
+
         </div>
 
         <div className="flex-1 max-w-xl px-4 hidden md:block">

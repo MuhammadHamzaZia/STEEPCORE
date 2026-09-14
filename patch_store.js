@@ -1,35 +1,25 @@
 import fs from 'fs';
+let code = fs.readFileSync('src/store/useUIStore.ts', 'utf8');
 
-let code = fs.readFileSync('src/store/useLibraryStore.ts', 'utf8');
+code = code.replace(
+  /selectedDomain: string;/,
+  'selectedDomain: string;\n  selectedCategoryType: string;\n  selectedIndustry: string;'
+);
 
-const targetMethod = `  markNodeCompleted: (blueprintId: string, nodeId: string, totalNodes: number) => void;`;
-const replaceMethod = `  markNodeCompleted: (blueprintId: string, nodeId: string, totalNodes: number) => void;
-  initializeRoadmap: (blueprintId: string) => void;
-  setRoadmapState: (blueprintId: string, completedNodes: string[], progress: number) => void;`;
+code = code.replace(
+  /setSelectedDomain: \(domain: string\) => void;/,
+  'setSelectedDomain: (domain: string) => void;\n  setSelectedCategoryType: (type: string) => void;\n  setSelectedIndustry: (industry: string) => void;'
+);
 
-const targetImpl = `      markNodeCompleted: (blueprintId, nodeId, totalNodes) => set((state) => {`;
-const replaceImpl = `      initializeRoadmap: (blueprintId) => set((state) => {
-        if (!state.activeRoadmaps[blueprintId]) {
-          return {
-            activeRoadmaps: {
-              ...state.activeRoadmaps,
-              [blueprintId]: { completedNodes: [], progress: 0 }
-            }
-          };
-        }
-        return state;
-      }),
-      setRoadmapState: (blueprintId, completedNodes, progress) => set((state) => ({
-        activeRoadmaps: {
-          ...state.activeRoadmaps,
-          [blueprintId]: { completedNodes, progress }
-        }
-      })),
-      markNodeCompleted: (blueprintId, nodeId, totalNodes) => set((state) => {`;
+code = code.replace(
+  /selectedDomain: 'all',/,
+  'selectedDomain: \'all\',\n  selectedCategoryType: \'all\',\n  selectedIndustry: \'all\','
+);
 
-if (code.includes(targetMethod)) {
-  code = code.replace(targetMethod, replaceMethod);
-  code = code.replace(targetImpl, replaceImpl);
-  fs.writeFileSync('src/store/useLibraryStore.ts', code);
-  console.log("Success: Store patched");
-}
+code = code.replace(
+  /setSelectedDomain: \(domain\) => set\(\{ selectedDomain: domain \}\),/,
+  'setSelectedDomain: (domain) => set({ selectedDomain: domain }),\n  setSelectedCategoryType: (type) => set({ selectedCategoryType: type }),\n  setSelectedIndustry: (industry) => set({ selectedIndustry: industry }),'
+);
+
+fs.writeFileSync('src/store/useUIStore.ts', code);
+console.log('patched store');

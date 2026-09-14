@@ -12,13 +12,13 @@ interface BlueprintCardProps {
   title: string;  description?: string;  nodesCount: number;
   price: number;
   originType?: 'official' | 'creator' | 'ai_generated' | 'remixed';
-  onClick?: () => void;
+  onCardClick?: (id: string) => void;
   isBookmarked: boolean;
-  onToggleBookmark: (e: React.MouseEvent) => void;
+  onBookmarkClick: (e: React.MouseEvent, id: string) => void;
 }
 
-const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title, description, nodesCount, price, originType, onClick, isBookmarked, onToggleBookmark }) => (
-  <div onClick={onClick} className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer relative z-0">
+const BlueprintCard = React.memo<BlueprintCardProps>(({ id, username, repo, title, description, nodesCount, price, originType, onCardClick, isBookmarked, onBookmarkClick }) => (
+  <div onClick={() => onCardClick && onCardClick(id)} className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer relative z-0">
     
     {originType === 'official' ? (
       <div className="absolute top-3 left-3 bg-[#1f6feb]/10 border border-[#388bfd]/30 text-[#2f81f7] text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm backdrop-blur-sm">
@@ -30,7 +30,7 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title
       </div>
     ) : null}
 
-    <button onClick={onToggleBookmark} className="absolute top-3 right-3 p-1.5 rounded-md bg-canvas-default border border-border-default hover:border-fg-muted transition-colors z-10">
+    <button onClick={(e) => onBookmarkClick(e, id)} className="absolute top-3 right-3 p-1.5 rounded-md bg-canvas-default border border-border-default hover:border-fg-muted transition-colors z-10">
       <Bookmark size={16} className={isBookmarked ? "text-action-accent fill-action-accent" : "text-fg-muted"} />
     </button>
     <div className="h-36 bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-4">
@@ -65,7 +65,36 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title
       </div>
     </div>
   </div>
-);
+));
+
+
+
+function getMockCategoryType(title) {
+  const t = (title || '').toLowerCase();
+  if (['engineer', 'developer', 'manager', 'architect', 'analyst', 'mechanic', 'designer', 'doctor'].some(k => t.includes(k))) return 'Role-Based';
+  if (['build', 'create', 'make', 'project', 'app', 'website', 'car', 'house', 'building'].some(k => t.includes(k))) return 'Project-Based';
+  return 'Skill-Based';
+}
+
+function getMockIndustry(title) {
+  const t = (title || '').toLowerCase();
+  if (['car', 'auto', 'mechanic', 'engine'].some(k => t.includes(k))) return 'Automotive';
+  if (['house', 'building', 'construction', 'civil', 'architecture'].some(k => t.includes(k))) return 'Construction';
+  if (['health', 'doctor', 'nurse', 'medical'].some(k => t.includes(k))) return 'Healthcare';
+  if (['business', 'finance', 'trading', 'marketing'].some(k => t.includes(k))) return 'Business';
+  if (['design', 'art', 'video', 'music'].some(k => t.includes(k))) return 'Creative';
+  return 'IT & Software';
+}
+
+function getMockDomain(title) {
+  const t = (title || '').toLowerCase();
+  if (['ai', 'data', 'ml', 'machine learning'].some(k => t.includes(k))) return 'AI & Data Science';
+  if (['web', 'mobile', 'react', 'ios', 'android', 'frontend', 'backend'].some(k => t.includes(k))) return 'Web & Mobile';
+  if (['cloud', 'devops', 'aws', 'docker', 'kubernetes'].some(k => t.includes(k))) return 'Cloud & DevOps';
+  if (['core', 'system', 'c++', 'rust', 'go', 'java'].some(k => t.includes(k))) return 'Core Engineering';
+  return 'Other';
+}
+
 
 interface CatalogPageProps {
   onNavigateToProduct?: () => void;
@@ -75,7 +104,9 @@ interface CatalogPageProps {
 export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: CatalogPageProps) {
   const { 
     searchQuery, setSearchQuery, 
-    selectedDomain, setSelectedDomain, 
+    selectedDomain, setSelectedDomain,
+    selectedCategoryType, setSelectedCategoryType,
+    selectedIndustry, setSelectedIndustry, 
     priceFilter, setPriceFilter, 
     assetTypeFilter, setAssetTypeFilter,
     sortBy, setSortBy,
@@ -85,17 +116,31 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const { savedBlueprintIds, toggleBookmark } = useLibraryStore();
   const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [categoryTypes, setCategoryTypes] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Categories' }]);
+  const [industries, setIndustries] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Industries' }]);
+  const [domainsList, setDomainsList] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Domains' }]);
+
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
+  
   useEffect(() => {
     const fetchBlueprints = async () => {
       setIsLoading(true);
       try {
-        const data = await api.getBlueprints();
-        setBlueprints(data);
+        const [bps, cats, inds, doms] = await Promise.all([
+          api.getBlueprints(),
+          api.getCategories(),
+          api.getIndustries(),
+          api.getDomains()
+        ]);
+        setBlueprints(bps);
+        setCategoryTypes(cats);
+        setIndustries(inds);
+        setDomainsList(doms);
       } catch (error) {
-        console.error('Failed to fetch blueprints', error);
+        console.error('Failed to fetch data', error);
       } finally {
         setIsLoading(false);
       }
@@ -103,42 +148,68 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     fetchBlueprints();
   }, []);
 
-  const filteredBlueprints = blueprints.filter(bp => {
+
+  
+  const filteredBlueprints = React.useMemo(() => blueprints.filter(bp => {
     const q = searchQuery?.toLowerCase() || '';
     const matchesSearch = !q || 
                           bp.title?.toLowerCase().includes(q) || 
                           bp.description?.toLowerCase().includes(q);
                           
-    const matchesDomain = selectedDomain === 'all' || bp.domain === selectedDomain;
+    const catType = getMockCategoryType(bp.title);
+    const ind = getMockIndustry(bp.title);
+    const dom = getMockDomain(bp.title);
+    
+    const matchesCatType = selectedCategoryType === 'all' || catType === selectedCategoryType;
+    const matchesInd = selectedIndustry === 'all' || ind === selectedIndustry;
+    const matchesDomain = selectedDomain === 'all' || dom === selectedDomain;
     
     const matchesPrice = priceFilter === 'all' || 
                          (priceFilter === 'free' && bp.price === 0) || 
                          (priceFilter === 'paid' && bp.price > 0);
                          
-    // Simulated asset type logic based on data flags or keywords
     const matchesAssetType = assetTypeFilter === 'all' || 
                              (assetTypeFilter === 'roadmap' && bp.title?.toLowerCase().includes('roadmap')) ||
                              (assetTypeFilter === 'blueprint' && !bp.title?.toLowerCase().includes('roadmap'));
 
-    return matchesSearch && matchesDomain && matchesPrice && matchesAssetType;
+    return matchesSearch && matchesDomain && matchesCatType && matchesInd && matchesPrice && matchesAssetType;
   }).sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price;
     if (sortBy === 'price-desc') return b.price - a.price;
-    return 0;
-  });
+    return 0; // popular is handled by default order
+  }), [blueprints, searchQuery, selectedCategoryType, selectedIndustry, selectedDomain, priceFilter, assetTypeFilter, sortBy]);
 
-  const domains = [
-    { name: 'all', label: 'All Domains' },
-    { name: 'Web Architecture', label: 'Web Architecture' },
-    { name: 'AI/ML', label: 'AI & ML Systems' },
-    { name: 'DevOps', label: 'Cloud & DevOps' }
-  ];
+  // Group blueprints by category
+  const groupedBlueprints = React.useMemo(() => filteredBlueprints.reduce((acc, bp) => {
+    const cat = getMockCategoryType(bp.title);
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(bp);
+    return acc;
+  }, {}), [filteredBlueprints]);
+
+
+  
+  
+  
+
 
   const sortOptions = [
     { id: 'popular', label: 'Most Recent' },
     { id: 'price-asc', label: 'Price: Low to High' },
     { id: 'price-desc', label: 'Price: High to Low' },
   ];
+
+  
+  const handleCardClick = React.useCallback((id: string) => {
+    setSelectedBlueprintId(id);
+    if (onNavigateToProduct) onNavigateToProduct();
+  }, [setSelectedBlueprintId, onNavigateToProduct]);
+
+  const handleBookmarkClick = React.useCallback((e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    toggleBookmark(id);
+  }, [toggleBookmark]);
+
 
   const toggleAssetType = (type: 'blueprint' | 'roadmap') => {
     if (assetTypeFilter === type) {
@@ -171,24 +242,68 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
             <button className="md:hidden text-fg-muted hover:text-fg-default transition-colors p-1" onClick={() => setIsMobileFiltersOpen(false)}>✕</button>
           </div>
 
-          {/* Domain Section */}
-        <div className="p-4 border-b border-border-default">
-          <div className="flex items-center justify-between mb-3 cursor-pointer group">
-            <h3 className="text-sm font-semibold text-fg-default group-hover:text-action-accent transition-colors">Domain</h3>
-            <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
+                    {/* Category Type Section */}
+          <div className="p-4 border-b border-border-default">
+            <div className="flex items-center justify-between mb-3 cursor-pointer group">
+              <h3 className="text-sm font-semibold text-fg-default group-hover:text-action-accent transition-colors">Category Type</h3>
+              <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
+            </div>
+            <ul className="space-y-2 text-sm text-fg-muted">
+              {categoryTypes.map((d) => (
+                <li key={d.name}>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedCategoryType === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {selectedCategoryType === d.name && <Check size={12} className="text-white" />}
+                    </div>
+                    <span className={`group-hover:text-fg-default transition-colors ${selectedCategoryType === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+                  </label>
+                  <input type="radio" name="cattype" value={d.name} checked={selectedCategoryType === d.name} onChange={() => setSelectedCategoryType(d.name)} className="hidden" />
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-2 text-sm text-fg-muted">
-            {domains.map((d) => (
-              <li 
-                key={d.name}
-                onClick={() => setSelectedDomain(d.name)}
-                className={`flex items-center justify-between cursor-pointer transition-colors ${selectedDomain === d.name ? 'text-fg-default font-medium' : 'hover:text-fg-default'}`}
-              >
-                <span>{d.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+
+          {/* Industry Section */}
+          <div className="p-4 border-b border-border-default">
+            <div className="flex items-center justify-between mb-3 cursor-pointer group">
+              <h3 className="text-sm font-semibold text-fg-default group-hover:text-action-accent transition-colors">Industry</h3>
+              <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
+            </div>
+            <ul className="space-y-2 text-sm text-fg-muted">
+              {industries.map((d) => (
+                <li key={d.name}>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedIndustry === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {selectedIndustry === d.name && <Check size={12} className="text-white" />}
+                    </div>
+                    <span className={`group-hover:text-fg-default transition-colors ${selectedIndustry === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+                  </label>
+                  <input type="radio" name="industry" value={d.name} checked={selectedIndustry === d.name} onChange={() => setSelectedIndustry(d.name)} className="hidden" />
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Domain Section */}
+          <div className="p-4 border-b border-border-default">
+            <div className="flex items-center justify-between mb-3 cursor-pointer group">
+              <h3 className="text-sm font-semibold text-fg-default group-hover:text-action-accent transition-colors">IT Domain (Optional)</h3>
+              <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
+            </div>
+            <ul className="space-y-2 text-sm text-fg-muted">
+              {domainsList.map((d) => (
+                <li key={d.name}>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedDomain === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {selectedDomain === d.name && <Check size={12} className="text-white" />}
+                    </div>
+                    <span className={`group-hover:text-fg-default transition-colors ${selectedDomain === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+                  </label>
+                  <input type="radio" name="domain" value={d.name} checked={selectedDomain === d.name} onChange={() => setSelectedDomain(d.name)} className="hidden" />
+                </li>
+              ))}
+            </ul>
+          </div>
 
         {/* Asset Type Section */}
         <div className="p-4 border-b border-border-default">
@@ -246,7 +361,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                 <a href="#" className="hover:text-action-accent transition-colors">Marketplace</a>
                 <ChevronRight size={14} />
                 <span className="text-fg-default font-medium">
-                  {selectedDomain === 'all' ? 'All Domains' : domains.find(d => d.name === selectedDomain)?.label}
+                  {selectedDomain === 'all' ? 'All Domains' : domainsList.find(d => d.name === selectedDomain)?.label}
                 </span>
               </div>
               <p className="text-xs text-fg-muted">Showing {filteredBlueprints.length} results</p>
@@ -322,28 +437,36 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                </button>
             </div>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6 w-full pb-20 md:pb-6">
-              {filteredBlueprints.map(bp => (
-                <BlueprintCard 
-                  key={bp.id}
-                  id={bp.id}
-                  username={bp.creator?.name?.replace('@', '') || 'unknown'}
-                  repo={bp.slug}
-                  title={bp.title}                  description={bp.description}                  nodesCount={bp.nodesCount}
-                  price={bp.price}
-                  originType={bp.source}
-                  onClick={() => {
-                    setSelectedBlueprintId(bp.id);
-                    if (onNavigateToProduct) onNavigateToProduct();
-                  }}
-                  isBookmarked={savedBlueprintIds.includes(bp.id)}
-                  onToggleBookmark={(e) => {
-                    e.stopPropagation();
-                    toggleBookmark(bp.id);
-                  }}
-                />
+            
+            <div className="flex flex-col gap-10 w-full pb-20 md:pb-6">
+              {Object.entries(groupedBlueprints).map(([category, bps]) => (
+                <div key={category} className="flex flex-col gap-4">
+                  <h2 className="text-xl font-bold text-fg-default flex items-center gap-2">
+                    {category}
+                    <span className="text-xs font-normal text-fg-muted bg-canvas-inset px-2 py-0.5 rounded-full border border-border-default">{(bps as any).length}</span>
+                  </h2>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6">
+                    {(bps as any).map((bp: any) => (
+                      <BlueprintCard 
+                        key={bp.id}
+                        id={bp.id}
+                        username={bp.creator?.name?.replace('@', '') || 'unknown'}
+                        repo={bp.slug}
+                        title={bp.title}
+                        description={bp.description}
+                        nodesCount={bp.nodesCount}
+                        price={bp.price}
+                        originType={bp.source}
+                        onCardClick={handleCardClick}
+                        isBookmarked={savedBlueprintIds.includes(bp.id)}
+                        onBookmarkClick={handleBookmarkClick}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
+
           )}
         </div>
       </main>

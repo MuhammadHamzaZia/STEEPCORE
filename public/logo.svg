@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+    <defs>
+        <!-- Outer C: Blends through Pink -> Purple -> Cyan -> Green -->
+        <linearGradient id="grad_C" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FF00AA" />
+            <stop offset="33%" stop-color="#7A00FF" />
+            <stop offset="66%" stop-color="#00E5FF" />
+            <stop offset="100%" stop-color="#00FF88" />
+        </linearGradient>
+
+        <!-- Upper S: Blends from Pink to Royal Purple -->
+        <linearGradient id="grad_S_up" x1="100%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#FF00AA" />
+            <stop offset="100%" stop-color="#7A00FF" />
+        </linearGradient>
+
+        <!-- Lower S: Blends from Electric Cyan to Mint Green -->
+        <linearGradient id="grad_S_low" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#00E5FF" />
+            <stop offset="100%" stop-color="#00FF88" />
+        </linearGradient>
+    </defs>
+
+    <!-- Dark Void Background for Neon Contrast -->
+    <rect width="100%" height="100%" fill="#0B0F19" />
+
+    <!-- Outer 'C' -->
+    <path d="M 405.88 160.00 A 180.00 180.00 0 1 0 405.88 340.00" fill="none" stroke="url(#grad_C)"
+          stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Upper 'S' Arc -->
+    <path d="M 316.86 269.58 A 94.56 94.56 0 1 0 155.44 202.72" fill="none" stroke="url(#grad_S_up)"
+          stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Lower 'S' Arc -->
+    <path d="M 183.14 230.42 A 94.56 94.56 0 1 0 344.56 297.28" fill="none" stroke="url(#grad_S_low)"
+          stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -14,7 +14,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNavigateToCatalog, onNavigateToProduct }) => {
   const [inputValue, setInputValue] = useState('');
   const [selectedPromptType, setSelectedPromptType] = useState('System Architecture');
-  const { setSelectedDomain, setSelectedBlueprintId } = useUIStore();
+  const { setSelectedDomain, setSelectedCategoryType, setSelectedIndustry, setSelectedBlueprintId } = useUIStore();
   const { savedBlueprintIds, toggleBookmark } = useLibraryStore();
   const [trendingBlueprints, setTrendingBlueprints] = useState<Blueprint[]>([]);
   const [quickSuggestions, setQuickSuggestions] = useState<string[]>([]);
@@ -39,7 +39,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
           api.getDomainCounts()
         ]);
         setTrendingBlueprints(trending);
-        setQuickSuggestions(suggestions);
+        if (suggestions && suggestions.length > 0) {
+          const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
+          setQuickSuggestions(shuffled.slice(0, 15));
+        } else {
+          setQuickSuggestions([]);
+        }
         setDomainCounts(counts);
       } catch (error) {
         console.error('Failed to fetch landing page data', error);
@@ -61,11 +66,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
     onGeneratePrompt(suggestion, selectedPromptType);
   };
 
-  const handleDomainClick = (domain: string) => {
+  
+  const handleCategoryClick = (catType: string, industry: string, domain: string) => {
+    setSelectedCategoryType(catType);
+    setSelectedIndustry(industry);
     setSelectedDomain(domain);
-    if (onNavigateToCatalog) {
-      onNavigateToCatalog();
-    }
+    if (onNavigateToCatalog) onNavigateToCatalog();
   };
 
   return (
@@ -179,42 +185,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
         )}
       </div>
 
+      
       {/* DOMAINS & CATEGORIES */}
-      <div className="w-full max-w-[1000px] mb-16">
-        <h2 className="text-sm font-semibold text-fg-default mb-4 uppercase tracking-wider">Domains & Categories</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div onClick={() => handleDomainClick('Web Architecture')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
-            <div className="p-2.5 rounded-md bg-canvas-inset border border-border-default group-hover:border-action-accent/30 transition-colors">
-              <Globe size={20} className="text-fg-default" />
+      <div className="w-full max-w-[1000px] mb-12">
+        <h2 className="text-sm font-semibold text-fg-default mb-4 uppercase tracking-wider">Top Categories</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <div onClick={() => handleCategoryClick('Role-Based', 'all', 'all')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
+            <div className="bg-[#1f6feb]/10 p-3 rounded-lg text-[#2f81f7]">
+              <Globe size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-fg-default text-base">Web Architecture</h3>
-              <p className="text-sm text-fg-muted mt-1">{domainCounts['Web Architecture'] || 0} Patterns</p>
+              <h3 className="font-semibold text-fg-default group-hover:text-action-accent transition-colors">Role-Based Paths</h3>
+              <p className="text-sm text-fg-muted mt-1">Engineer, Designer, Manager, Builder</p>
             </div>
           </div>
           
-          <div onClick={() => handleDomainClick('AI/ML')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
-            <div className="p-2.5 rounded-md bg-canvas-inset border border-border-default group-hover:border-action-accent/30 transition-colors">
-              <BrainCircuit size={20} className="text-fg-default" />
+          <div onClick={() => handleCategoryClick('Skill-Based', 'all', 'all')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
+            <div className="bg-[#8957e5]/10 p-3 rounded-lg text-[#a371f7]">
+              <BrainCircuit size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-fg-default text-base">AI & ML Systems</h3>
-              <p className="text-sm text-fg-muted mt-1">{domainCounts['AI/ML'] || 0} Roadmaps</p>
+              <h3 className="font-semibold text-fg-default group-hover:text-action-accent transition-colors">Skill-Based Guides</h3>
+              <p className="text-sm text-fg-muted mt-1">Python, Welding, AutoCAD, Marketing</p>
             </div>
           </div>
-          
-          <div onClick={() => handleDomainClick('DevOps')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
-            <div className="p-2.5 rounded-md bg-canvas-inset border border-border-default group-hover:border-action-accent/30 transition-colors">
-              <Cloud size={20} className="text-fg-default" />
+
+          <div onClick={() => handleCategoryClick('all', 'Construction', 'all')} className="bg-canvas-surface border border-border-default rounded-lg p-5 flex items-start gap-4 hover:border-action-accent transition-colors cursor-pointer group">
+            <div className="bg-[#238636]/10 p-3 rounded-lg text-[#3fb950]">
+              <Database size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-fg-default text-base">Cloud & DevOps</h3>
-              <p className="text-sm text-fg-muted mt-1">{domainCounts['DevOps'] || 0} Blueprints</p>
+              <h3 className="font-semibold text-fg-default group-hover:text-action-accent transition-colors">Construction & Engineering</h3>
+              <p className="text-sm text-fg-muted mt-1">Buildings, Infrastructure, Architecture</p>
             </div>
           </div>
+
         </div>
       </div>
-
       {/* TRENDING BLUEPRINTS */}
       <div className="w-full max-w-[1000px] mb-12">
         <div className="flex items-center justify-between mb-4">

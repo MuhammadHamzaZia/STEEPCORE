@@ -8,9 +8,9 @@ import { Blueprint, FlowchartNode } from '../types/schema';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?: () => void }) {
+export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: { onNavigateToEditor?: () => void, onNavigateToCatalog?: () => void }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const { selectedBlueprintId, setIsAuthModalOpen } = useUIStore();
+  const { selectedBlueprintId, setIsAuthModalOpen, setSelectedDomain } = useUIStore();
   const { isAuthenticated, user } = useAuthStore();
   const { activeRoadmaps, initializeRoadmap } = useLibraryStore();
   
@@ -97,9 +97,24 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
       {/* Breadcrumb Top Bar */}
       <div className="px-6 py-4 border-b border-border-default bg-canvas-default sticky top-0 z-20">
         <div className="flex items-center gap-2 text-sm text-fg-muted max-w-6xl mx-auto w-full">
-          <span className="text-fg-muted">Marketplace</span>
+          <button 
+            onClick={() => {
+              if (onNavigateToCatalog) onNavigateToCatalog();
+            }}
+            className="text-fg-muted hover:text-action-accent transition-colors"
+          >
+            Marketplace
+          </button>
           <ChevronRight size={14} />
-          <span className="text-fg-muted">{blueprint.domain}</span>
+          <button 
+            onClick={() => {
+              setSelectedDomain(blueprint.domain);
+              if (onNavigateToCatalog) onNavigateToCatalog();
+            }}
+            className="text-fg-muted hover:text-action-accent transition-colors"
+          >
+            {blueprint.domain}
+          </button>
           <ChevronRight size={14} />
           <span className="text-fg-default font-medium truncate">{blueprint.title}</span>
         </div>
