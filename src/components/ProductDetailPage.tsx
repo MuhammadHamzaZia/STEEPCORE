@@ -56,7 +56,7 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
   }
 
   const isOwned = activeRoadmaps[blueprint.id] !== undefined;
-  const isFree = blueprint.isFree;
+  const isFree = blueprint.price === 0;
   const canAccess = isOwned || isFree;
 
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
@@ -103,31 +103,9 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
           <div className="w-full h-[300px] bg-canvas-inset border border-border-default rounded-lg relative overflow-hidden mb-8 flex items-center justify-center">
             <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             
-            {/* Mock Graph Preview */}
-            <div className="relative z-10 w-full max-w-md mx-auto p-4 flex flex-col items-center gap-6 opacity-60">
-              <div className="flex items-center gap-8 w-full justify-center">
-                <div className="px-4 py-2 bg-canvas-surface border border-border-default rounded-md text-xs font-mono text-fg-muted shadow-sm flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-fg-muted"></span> Client
-                </div>
-                <div className="h-0.5 w-12 bg-border-default relative">
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t-2 border-r-2 border-border-default rotate-45"></div>
-                </div>
-                <div className="px-4 py-2 bg-canvas-surface border border-action-accent rounded-md text-xs font-mono text-action-accent shadow-sm flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-action-accent"></span> API Gateway
-                </div>
-                <div className="h-0.5 w-12 bg-border-default relative">
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t-2 border-r-2 border-border-default rotate-45"></div>
-                </div>
-                <div className="px-4 py-2 bg-canvas-surface border border-purple-500/50 rounded-md text-xs font-mono text-purple-400 shadow-sm flex items-center gap-2">
-                  <DatabaseIcon /> VectorDB
-                </div>
-              </div>
-              <div className="w-0.5 h-8 bg-border-default relative mr-[140px]">
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 border-b-2 border-r-2 border-border-default rotate-45"></div>
-              </div>
-              <div className="px-4 py-2 bg-canvas-surface border border-action-primary/50 rounded-md text-xs font-mono text-action-primary shadow-sm flex items-center gap-2 mr-[140px]">
-                <Sparkles size={12} /> LLM Orchestrator
-              </div>
+            {/* Decorative Placeholder */}
+            <div className="relative z-10 flex items-center justify-center h-full w-full opacity-30">
+              <Sparkles className="w-16 h-16 text-fg-muted" />
             </div>
 
             <div className="absolute top-3 left-3 px-2.5 py-1 bg-canvas-surface/80 backdrop-blur-sm border border-border-default rounded text-[10px] uppercase tracking-wider font-semibold text-fg-muted flex items-center gap-1.5">
@@ -157,56 +135,14 @@ export function ProductDetailPage({ onNavigateToEditor }: { onNavigateToEditor?:
             >
               Included Nodes ({blueprint.nodesCount})
             </button>
-            <button 
-              onClick={() => setActiveTab('prereqs')}
-              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === 'prereqs' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default hover:border-border-default'}`}
-            >
-              Prerequisites
-            </button>
-            <button 
-              onClick={() => setActiveTab('reviews')}
-              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === 'reviews' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default hover:border-border-default'}`}
-            >
-              Reviews ({blueprint.starsCount})
-            </button>
           </div>
 
           {/* Tab Content: Overview (Markdown Styled) */}
           {activeTab === 'overview' && (
-            <div className="prose prose-invert prose-slate max-w-none prose-h2:text-fg-default prose-h2:text-xl prose-h2:font-semibold prose-h2:border-b prose-h2:border-border-default prose-h2:pb-2 prose-h2:mt-8 prose-h2:mb-4 prose-p:text-fg-muted prose-p:leading-relaxed prose-a:text-action-accent prose-code:text-fg-default prose-code:bg-canvas-inset prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-canvas-inset prose-pre:border prose-pre:border-border-default">
-              <h2>System Architecture Overview</h2>
-              <p>
-                Retrieval-Augmented Generation (RAG) is the industry standard for grounding Large Language Models in private or proprietary data. This blueprint covers a production-ready setup utilizing FastAPI for the serving layer, pgvector for high-performance vector retrieval, and a modular LLM orchestrator (LangChain/LlamaIndex agnostic).
-              </p>
-              
-              <h2>Data Ingestion Flow</h2>
-              <p>
-                The ingestion pipeline is decoupled from the serving API. It utilizes asynchronous task queues (Celery/Redis) to chunk documents, generate embeddings via <code>text-embedding-3-small</code>, and upsert them into PostgreSQL.
-              </p>
-
-              <h2>Sample Implementation</h2>
-              <p>Below is a snippet included in the blueprint for configuring the pgvector connection securely:</p>
-              <pre>
-                <code>{`import os
-from sqlalchemy import create_engine
-from pgvector.sqlalchemy import Vector
-
-# Establish connection using secure credentials
-DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=0)
-
-def init_db():
-    with engine.connect() as conn:
-        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        conn.commit()`}</code>
-              </pre>
-
-              <h2>Scalability Considerations</h2>
-              <ul>
-                <li><strong>Stateless API:</strong> The FastAPI layer is completely stateless, allowing horizontal scaling behind a standard load balancer.</li>
-                <li><strong>Connection Pooling:</strong> PgBouncer is highly recommended when scaling beyond 50 concurrent API instances.</li>
-                <li><strong>Caching:</strong> Redis is used to cache frequent semantic search queries with an exact-match threshold.</li>
-              </ul>
+            <div className="prose prose-invert prose-slate max-w-none">
+              <div className="whitespace-pre-wrap text-fg-muted">
+                {blueprint.description || 'No detailed overview provided.'}
+              </div>
             </div>
           )}
 
@@ -230,62 +166,6 @@ def init_db():
                     No explicit nodes recorded for this blueprint yet.
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content: Prerequisites */}
-          {activeTab === 'prereqs' && (
-            <div className="py-8 flex flex-col gap-4">
-              <h2 className="text-xl font-semibold text-fg-default mb-4">Required Prerequisites</h2>
-              <div className="bg-canvas-surface border border-border-default rounded-lg p-6">
-                <ul className="space-y-4 text-fg-muted">
-                  <li className="flex items-start gap-3">
-                    <Check size={18} className="text-action-accent mt-0.5 shrink-0" />
-                    <span>Basic understanding of Python and asynchronous programming.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check size={18} className="text-action-accent mt-0.5 shrink-0" />
-                    <span>Familiarity with containerization (Docker, docker-compose).</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check size={18} className="text-action-accent mt-0.5 shrink-0" />
-                    <span>Understanding of vector embeddings and cosine similarity.</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content: Reviews */}
-          {activeTab === 'reviews' && (
-            <div className="py-8 flex flex-col gap-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-fg-default">User Reviews</h2>
-                <div className="flex items-center gap-2">
-                  <Star size={20} className="text-yellow-500 fill-yellow-500" />
-                  <span className="text-xl font-bold text-fg-default">{blueprint.rating.toFixed(1)}</span>
-                  <span className="text-fg-muted">({blueprint.starsCount} reviews)</span>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {[1, 2, 3].map((_, i) => (
-                  <div key={i} className="bg-canvas-surface border border-border-default rounded-lg p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-canvas-inset border border-border-default flex items-center justify-center text-xs font-bold text-fg-muted">U{i+1}</div>
-                      <div>
-                        <div className="text-sm font-medium text-fg-default">User_{Math.floor(Math.random() * 1000)}</div>
-                        <div className="text-xs text-fg-muted">2 weeks ago</div>
-                      </div>
-                      <div className="ml-auto flex items-center gap-1">
-                        {[...Array(5)].map((_, j) => (
-                          <Star key={j} size={14} className={j < Math.floor(blueprint.rating) ? "text-yellow-500 fill-yellow-500" : "text-fg-muted"} />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-fg-muted">This blueprint saved my team weeks of architectural planning. The FastAPI boilerplate is excellent and the pgvector setup is highly optimized.</p>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -339,18 +219,9 @@ def init_db():
 
           {/* Tech Stack & Metadata Card */}
           <div className="bg-canvas-surface border border-border-default rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-fg-default uppercase tracking-wider mb-4 border-b border-border-default pb-2">Tech Stack & Metadata</h3>
+            <h3 className="text-sm font-semibold text-fg-default uppercase tracking-wider mb-4 border-b border-border-default pb-2">Metadata</h3>
             
             <div className="space-y-4 text-sm">
-              <div>
-                <span className="block text-fg-muted mb-2">Core Technologies</span>
-                <div className="flex flex-wrap gap-2">
-                  {blueprint.techStack.map(tech => (
-                    <span key={tech} className="px-2.5 py-1 rounded bg-canvas-inset border border-border-default text-fg-default font-mono text-xs">{tech}</span>
-                  ))}
-                </div>
-              </div>
-              
               <div className="flex items-center justify-between py-2 border-t border-border-default">
                 <span className="text-fg-muted">License</span>
                 <span className="font-medium text-fg-default flex items-center gap-1.5">
@@ -361,8 +232,10 @@ def init_db():
               <div className="flex items-center justify-between py-2 border-t border-border-default">
                 <span className="text-fg-muted">Creator</span>
                 <div className="flex items-center gap-2">
-                  <img src={blueprint.creator.avatar} alt={blueprint.creator.name} className="w-5 h-5 rounded-full border border-border-default" />
-                  <a href="#" className="font-medium text-action-accent hover:underline">{blueprint.creator.name}</a>
+                  <div className="w-5 h-5 rounded-full bg-canvas-inset border border-border-default flex items-center justify-center text-[10px] font-bold text-fg-muted">
+                    {blueprint.creator.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-medium text-action-accent hover:underline">{blueprint.creator.name}</span>
                 </div>
               </div>
             </div>

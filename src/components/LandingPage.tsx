@@ -273,19 +273,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                   <div className="text-xs text-fg-muted font-mono mb-1">{bp.creator.name}/{bp.slug}</div>
                   <h3 className="font-semibold text-fg-default text-base mb-3 group-hover:text-action-accent transition-colors">{bp.title}</h3>
                   
-                  <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
-                    {bp.techStack.slice(0, 3).map(tech => (
-                      <span key={tech} className="px-2 py-0.5 rounded text-[10px] font-mono bg-canvas-inset border border-border-default text-fg-muted">{tech}</span>
-                    ))}
-                  </div>
-                  
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-default">
                     <div className="flex items-center gap-1.5 text-xs text-fg-muted">
-                      <Star size={14} className="text-yellow-500 fill-yellow-500/20" />
-                      <span>{bp.rating.toFixed(1)}</span>
-                      <span>({bp.starsCount})</span>
+                      <span>{bp.price === 0 ? 'Free' : 'Premium'}</span>
                     </div>
-                    {bp.isFree ? (
+                    {bp.price === 0 ? (
                       <div className="text-sm font-semibold text-action-primary bg-action-primary/10 px-2 py-0.5 rounded border border-action-primary/20">Free</div>
                     ) : (
                       <div className="text-sm font-semibold text-fg-default bg-canvas-inset px-2 py-0.5 rounded border border-border-default">${bp.price}</div>

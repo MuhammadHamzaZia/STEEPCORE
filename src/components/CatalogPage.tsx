@@ -10,19 +10,15 @@ interface BlueprintCardProps {
   username: string;
   repo: string;
   title: string;
-  tags: string[];
   nodesCount: number;
-  rating: number;
-  reviews: number;
   price: number;
-  isFree: boolean;
   originType?: 'official' | 'creator' | 'ai_generated' | 'remixed';
   onClick?: () => void;
   isBookmarked: boolean;
   onToggleBookmark: (e: React.MouseEvent) => void;
 }
 
-const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title, tags, nodesCount, rating, reviews, price, isFree, originType, onClick, isBookmarked, onToggleBookmark }) => (
+const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title, nodesCount, price, originType, onClick, isBookmarked, onToggleBookmark }) => (
   <div onClick={onClick} className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer relative z-0">
     
     {originType === 'official' ? (
@@ -56,23 +52,15 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title
       <div className="text-xs text-fg-muted font-mono mb-1 truncate w-full max-w-full">{username}/{repo}</div>
       <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-3 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>
       
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {tags?.slice(0, 3).map((tag, index) => (
-          <span key={tag} className={`px-2 py-0.5 rounded text-[10px] font-mono bg-canvas-inset border border-border-default text-fg-muted ${index === 2 ? 'hidden @[300px]:inline-block' : ''}`}>{tag}</span>
-        ))}
-      </div>
-
       <div className="text-xs text-fg-muted mb-4 mt-auto">
         {nodesCount} Nodes
       </div>
       
       <div className="flex items-center justify-between pt-3 border-t border-border-default">
         <div className="flex items-center gap-1.5 text-xs text-fg-muted">
-          <Star size={14} className="text-yellow-500 fill-yellow-500/20" />
-          <span>{rating?.toFixed(1) || '0.0'}</span>
-          <span className="hidden @[300px]:inline">({reviews || 0})</span>
+          <span>{price === 0 ? 'Free' : 'Premium'}</span>
         </div>
-        {isFree ? (
+        {price === 0 ? (
           <div className="text-sm font-semibold text-action-primary bg-action-primary/10 px-2 py-0.5 rounded border border-action-primary/20">Free</div>
         ) : (
           <div className="text-sm font-semibold text-fg-default bg-canvas-inset px-2 py-0.5 rounded border border-border-default">${price}</div>
@@ -122,14 +110,13 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     const q = searchQuery?.toLowerCase() || '';
     const matchesSearch = !q || 
                           bp.title?.toLowerCase().includes(q) || 
-                          bp.description?.toLowerCase().includes(q) ||
-                          bp.techStack?.some(t => t?.toLowerCase().includes(q));
+                          bp.description?.toLowerCase().includes(q);
                           
     const matchesDomain = selectedDomain === 'all' || bp.domain === selectedDomain;
     
     const matchesPrice = priceFilter === 'all' || 
-                         (priceFilter === 'free' && bp.isFree) || 
-                         (priceFilter === 'paid' && !bp.isFree);
+                         (priceFilter === 'free' && bp.price === 0) || 
+                         (priceFilter === 'paid' && bp.price > 0);
                          
     // Simulated asset type logic based on data flags or keywords
     const matchesAssetType = assetTypeFilter === 'all' || 
@@ -138,11 +125,9 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
 
     return matchesSearch && matchesDomain && matchesPrice && matchesAssetType;
   }).sort((a, b) => {
-    if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'price-asc') return a.price - b.price;
     if (sortBy === 'price-desc') return b.price - a.price;
-    // popular (default)
-    return b.starsCount - a.starsCount;
+    return 0;
   });
 
   const domains = [
@@ -153,8 +138,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   ];
 
   const sortOptions = [
-    { id: 'popular', label: 'Most Starred' },
-    { id: 'rating', label: 'Highest Rated' },
+    { id: 'popular', label: 'Most Recent' },
     { id: 'price-asc', label: 'Price: Low to High' },
     { id: 'price-desc', label: 'Price: High to Low' },
   ];
@@ -349,12 +333,8 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                   username={bp.creator?.name?.replace('@', '') || 'unknown'}
                   repo={bp.slug}
                   title={bp.title}
-                  tags={bp.techStack}
                   nodesCount={bp.nodesCount}
-                  rating={bp.rating}
-                  reviews={bp.starsCount}
                   price={bp.price}
-                  isFree={bp.isFree}
                   originType={bp.source}
                   onClick={() => {
                     setSelectedBlueprintId(bp.id);

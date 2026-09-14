@@ -22,10 +22,6 @@ export interface Blueprint {
   description: string;
   domain: string;
   price: number;
-  isFree: boolean;
-  rating: number;
-  starsCount: number;
-  techStack: string[];
   
   // Publishing and origin metadata
   creatorId: string;
@@ -45,7 +41,6 @@ export interface Blueprint {
   // Populated relation for UI convenience
   creator: {
     name: string;
-    avatar: string;
   };
 }
 

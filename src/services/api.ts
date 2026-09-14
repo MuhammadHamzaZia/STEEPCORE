@@ -1,5 +1,4 @@
 import { Blueprint, FlowchartNode, UserProgress, User, Transaction } from '../types/schema';
-import { blueprints as mockBlueprints, nodes as mockNodes, userProgress, users, transactions } from '../data/mockDatabase';
 import { apiClient } from './apiClient';
 
 export const api = {
@@ -31,7 +30,7 @@ export const api = {
   },
 
   // Blueprints
-    async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
+  async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
     try {
       const data = await apiClient.get<any[]>('/api/Blueprints/published');
       if (Array.isArray(data)) {
@@ -39,7 +38,7 @@ export const api = {
           ...item,
           id: String(item.id),
           nodesCount: item.nodes?.length || 0,
-          creator: { name: item.creatorName || 'STEEPCORE', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }
+          creator: { name: item.creatorName || 'STEEPCORE' }
         }));
         if (domainFilter && domainFilter !== 'all') {
           formatted = formatted.filter((bp: any) => bp.domain === domainFilter);
@@ -53,16 +52,14 @@ export const api = {
   },
   async getTrendingBlueprints(limit: number = 3): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/trending?limit=${limit}`);
-      return data;
+      return await apiClient.get<Blueprint[]>(`/api/Blueprints/trending?limit=${limit}`);
     } catch (e) {
       return [];
     }
   },
   async searchBlueprints(term: string): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<Blueprint[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
-      return data;
+      return await apiClient.get<Blueprint[]>(`/api/Blueprints/search?query=${encodeURIComponent(term)}`);
     } catch (e) {
       return [];
     }
@@ -71,7 +68,7 @@ export const api = {
     try {
       return await apiClient.get<string[]>('/api/Blueprints/suggestions');
     } catch (e) {
-      return ['React', 'Node.js', 'PostgreSQL'];
+      return [];
     }
   },
   async getDomainCounts(): Promise<Record<string, number>> {
@@ -86,6 +83,7 @@ export const api = {
       const data = await apiClient.get<any>(`/api/Blueprints/${id}`);
       if (data) {
         data.nodesCount = data.nodes?.length || 0;
+        data.creator = { name: data.creatorName || 'STEEPCORE' };
         return data;
       }
     } catch (e) {
@@ -113,9 +111,9 @@ export const api = {
         }));
       }
     } catch (e) {
-      console.warn('Fallback nodes to mockDatabase');
+      console.error(e);
     }
-    return mockNodes.filter(n => n.blueprintId === blueprintId);
+    return [];
   },
 
   // AI Generation
@@ -156,7 +154,7 @@ export const api = {
   },
 
   // User & Transactions
-    async getUserProgress(blueprintId: string): Promise<any[]> {
+  async getUserProgress(blueprintId: string): Promise<any[]> {
     try {
       return await apiClient.get<any[]>(`/api/UserProgress/${blueprintId}`);
     } catch {
@@ -165,12 +163,5 @@ export const api = {
   },
   async toggleNodeProgress(blueprintId: string, nodeId: string, status: string): Promise<void> {
     await apiClient.post('/api/UserProgress/toggle', { blueprintId, nodeId, status });
-  },
-  async getUser(id: string): Promise<User | undefined> {
-    return users.find(u => u.id === id);
-  },
-  
-  async getTransactionsByUser(userId: string): Promise<Transaction[]> {
-    return transactions.filter(t => t.buyerId === userId || t.creatorId === userId);
   }
 };

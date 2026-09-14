@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 type PriceFilter = 'all' | 'free' | 'paid';
 type AssetTypeFilter = 'all' | 'blueprint' | 'roadmap';
-type SortBy = 'popular' | 'rating' | 'price-asc' | 'price-desc';
+type SortBy = 'popular' | 'price-asc' | 'price-desc';
 
 interface UIStore {
   searchQuery: string;
