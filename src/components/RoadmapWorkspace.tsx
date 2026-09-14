@@ -23,6 +23,8 @@ import { EditableNode, cn } from './EditableNode';
 import { getLayoutedElements } from '../lib/flow';
 import { api } from '../services/api';
 import { apiClient } from '../services/apiClient';
+import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
 
 const nodeTypes = {
   editable: EditableNode,
@@ -36,10 +38,13 @@ interface RoadmapWorkspaceProps {
 
 function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorkspaceProps) {
   const reactFlowInstance = useReactFlow();
+  const { isAuthenticated } = useAuthStore();
+  const { setIsAuthModalOpen } = useUIStore();
   
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentBlueprintId, setCurrentBlueprintId] = useState<string | undefined>(initialBlueprintId);
   
   // UI State
   const [leftSidebarTab, setLeftSidebarTab] = useState<'tools' | 'chat'>('tools');
@@ -72,12 +77,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
         description: saveDesc,
         price: savePrice,
         isPublished: isPublic,
-        nodes: nodes.map(n => ({
-          label: typeof n.data.label === 'string' ? n.data.label : 'Node',
-          type: typeof n.data.type === 'string' ? n.data.type : 'topic',
-          positionX: n.position.x,
-          positionY: n.position.y
-        })),
+        nodes: nodes.map(n => ({          label: typeof n.data.label === 'string' ? n.data.label : 'Node',          type: typeof n.data.type === 'string' ? n.data.type : 'topic',          description: typeof n.data.description === 'string' ? n.data.description : undefined,          positionX: n.position.x,          positionY: n.position.y        })),
         edges: edges.map(e => {
           const sourceNode = nodes.find(n => n.id === e.source);
           const targetNode = nodes.find(n => n.id === e.target);
@@ -91,10 +91,19 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
       
       
       try {
-        await apiClient.post('/api/blueprints', payload);
+        if (currentBlueprintId) {
+          await apiClient.put(`/api/Blueprints/${currentBlueprintId}`, payload);
+        } else {
+          const res = await apiClient.post<any>('/api/Blueprints', payload);
+          if (res && res.id) {
+            setCurrentBlueprintId(res.id);
+          } else if (res && res.blueprint && res.blueprint.id) {
+            setCurrentBlueprintId(res.blueprint.id);
+          }
+        }
       } catch (err: any) {
         if (err.message?.includes('401')) {
-          alert('You must be logged in to save a roadmap to your profile.');
+          setIsAuthModalOpen(true);
         } else {
           alert('Failed to save roadmap.');
         }
@@ -113,8 +122,8 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
 
   const openSaveModal = () => {
     // Check login
-    if (!localStorage.getItem('auth_token')) {
-        alert("Please login using the Top Right menu before saving a roadmap to your profile.");
+    if (!isAuthenticated) {
+        setIsAuthModalOpen(true);
         return;
     }
     setSaveTitle(initialRole || 'Custom Roadmap');
@@ -139,7 +148,12 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
     try {
       const bp = await api.getBlueprintById(id);
       if (bp) {
-          const bpNodes = bp.nodes || [];
+          setSaveTitle(bp.title || initialRole || 'Custom Roadmap');
+          setSaveDesc(bp.description || '');
+          setSavePrice(bp.price || 0);
+          setIsPublic(bp.isPublished || false);
+          
+          const bpNodes = (bp as any).nodes || [];
           const initialNodes: Node[] = bpNodes.map((n: any) => ({
             id: String(n.id),
             type: 'editable',
@@ -153,7 +167,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
           }));
           setNodes(initialNodes);
           
-          const bpEdges = bp.edges || [];
+          const bpEdges = (bp as any).edges || [];
           const initialEdges: Edge[] = bpEdges.map((e: any) => ({
             id: String(e.id),
             source: String(e.sourceNodeId),

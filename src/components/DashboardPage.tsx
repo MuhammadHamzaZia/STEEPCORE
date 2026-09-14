@@ -21,7 +21,7 @@ interface DashboardPageProps {
   onNavigateToCatalog?: () => void;
 }
 
-type TabId = 'overview' | 'roadmaps' | 'saved' | 'created' | 'settings';
+type TabId = 'overview' | 'roadmaps' | 'saved' | 'created';
 
 export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: DashboardPageProps) {
   const { savedBlueprintIds, activeRoadmaps } = useLibraryStore();
@@ -71,7 +71,6 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
     { id: 'roadmaps', label: 'Active Roadmaps', icon: <BrainCircuit size={16} />, count: activeRoadmapsList.length },
     { id: 'saved', label: 'Saved Blueprints', icon: <Package size={16} />, count: savedBlueprints.length },
     { id: 'created', label: 'My Created Patterns', icon: <PenTool size={16} /> },
-    { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
   ];
 
   return (
@@ -95,15 +94,6 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
              </button>
            ))}
          </nav>
-         <div className="mt-auto p-4 border-t border-border-default">
-           <button 
-             onClick={() => setActiveTab('settings')}
-             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm ${activeTab === 'settings' ? 'bg-canvas-inset border border-border-default text-fg-default font-medium' : 'bg-transparent border border-transparent hover:bg-canvas-inset text-fg-muted hover:text-fg-default font-medium'}`}
-           >
-             <Settings size={16} />
-             Settings
-           </button>
-         </div>
       </aside>
 
       {/* Main Content Workspace */}
@@ -131,7 +121,6 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
             {activeTab === 'roadmaps' && 'Active Roadmaps'}
             {activeTab === 'saved' && 'Saved Blueprints'}
             {activeTab === 'created' && 'My Created Patterns'}
-            {activeTab === 'settings' && 'Settings'}
           </h1>
 
           {/* Top Section: In-Progress Learning Roadmaps */}
@@ -235,9 +224,7 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
                           </div>
                         </div>
                       </div>
-                      <div className="p-4 flex flex-col flex-1">
-                        <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-2 group-hover:text-action-accent transition-colors line-clamp-2">{bp.title}</h3>
-                        <div className="flex items-center gap-1.5 text-xs text-fg-muted mb-4 mt-auto">
+                      <div className="p-4 flex flex-col flex-1">                        <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-1 group-hover:text-action-accent transition-colors line-clamp-1">{bp.title}</h3>                        {bp.description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{bp.description}</p>}                        <div className="flex items-center gap-1.5 text-xs text-fg-muted mb-4 mt-auto">
                           <Clock size={12} />
                           <span>Saved recently</span>
                         </div>
@@ -297,13 +284,6 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
                 </div>
               )}
             </section>
-          )}
-          {activeTab === 'settings' && (
-            <div className="bg-canvas-surface border border-border-default rounded-lg p-8 sm:p-12 text-center shadow-sm max-w-2xl mx-auto mt-8">
-              <Settings className="w-12 h-12 text-fg-muted mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold text-fg-default mb-2">Settings</h3>
-              <p className="text-sm text-fg-muted">Coming Soon</p>
-            </div>
           )}
         </div>
       </main>

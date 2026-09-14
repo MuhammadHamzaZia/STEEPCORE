@@ -10,7 +10,9 @@ import { CatalogPage } from './components/CatalogPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { DashboardPage } from './components/DashboardPage';
 import { Layout } from './components/Layout';
+import { AuthModal } from './components/AuthModal';
 import { useUIStore } from './store/useUIStore';
+import { useAuthStore } from './store/useAuthStore';
 
 type Page = 'landing' | 'catalog' | 'roadmap' | 'product' | 'editor' | 'dashboard';
 
@@ -19,7 +21,16 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const { setSearchQuery, setSelectedPromptType, searchQuery, selectedPromptType } = useUIStore();
+  const { setSearchQuery, setSelectedPromptType, searchQuery, selectedPromptType, isAuthModalOpen, setIsAuthModalOpen, selectedBlueprintId } = useUIStore();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleNavigate = (page: Page) => {
+    if (page === 'editor' && !isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setCurrentPage(page);
+  };
 
   const handleGeneratePrompt = (prompt: string, promptType: string) => {
     setSearchQuery(prompt);
@@ -30,37 +41,42 @@ export default function App() {
     setTimeout(() => {
       setIsAiLoading(false);
       setSelectedRole(prompt); 
-      setCurrentPage('roadmap'); 
+      handleNavigate('roadmap'); 
     }, 1500);
   };
 
   const handleBackToLanding = () => {
     setSelectedRole(null);
-    setCurrentPage('landing');
+    handleNavigate('landing');
   };
 
   if (currentPage === 'editor') {
-    return <RoadmapWorkspace initialBlueprintId={useUIStore().selectedBlueprintId || undefined} onBack={() => setCurrentPage('product')} />;
+    return (
+      <>
+        <RoadmapWorkspace initialBlueprintId={selectedBlueprintId || undefined} onBack={() => handleNavigate('product')} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      </>
+    );
   }
 
   return (
     <>
-      <Layout onNavigate={setCurrentPage} currentPage={currentPage}>
+      <Layout onNavigate={handleNavigate} currentPage={currentPage}>
         {currentPage === 'landing' && (
           <LandingPage 
             onGeneratePrompt={handleGeneratePrompt} 
-            onNavigateToCatalog={() => setCurrentPage('catalog')}
-            onNavigateToProduct={() => setCurrentPage('product')}
+            onNavigateToCatalog={() => handleNavigate('catalog')}
+            onNavigateToProduct={() => handleNavigate('product')}
           />
         )}
         {currentPage === 'catalog' && (
           <CatalogPage 
-            onNavigateToProduct={() => setCurrentPage('product')} 
+            onNavigateToProduct={() => handleNavigate('product')} 
             onNavigateToRoadmap={() => {
               if (searchQuery) {
                 handleGeneratePrompt(searchQuery, selectedPromptType || 'System Architecture');
               } else {
-                setCurrentPage('landing');
+                handleNavigate('landing');
                 setTimeout(() => {
                   const input = document.querySelector('input[type="text"]');
                   if (input instanceof HTMLElement) input.focus();
@@ -73,12 +89,12 @@ export default function App() {
           <RoadmapWorkspace initialRole={selectedRole} onBack={handleBackToLanding} />
         )}
         {currentPage === 'product' && (
-          <ProductDetailPage onNavigateToEditor={() => setCurrentPage('editor')} />
+          <ProductDetailPage onNavigateToEditor={() => handleNavigate('editor')} />
         )}
         {currentPage === 'dashboard' && (
           <DashboardPage 
-            onNavigateToEditor={() => setCurrentPage('editor')} 
-            onNavigateToCatalog={() => setCurrentPage('catalog')}
+            onNavigateToEditor={() => handleNavigate('editor')} 
+            onNavigateToCatalog={() => handleNavigate('catalog')}
           />
         )}
       </Layout>
@@ -96,6 +112,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Global Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 }

@@ -21,6 +21,8 @@ interface UIStore {
   setActiveTab: (tab: string) => void;
   setSelectedBlueprintId: (id: string | null) => void;
   setSelectedPromptType: (type: string) => void;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (val: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -32,6 +34,7 @@ export const useUIStore = create<UIStore>((set) => ({
   activeTab: 'overview',
   selectedBlueprintId: null,
   selectedPromptType: 'System Architecture',
+  isAuthModalOpen: false,
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedDomain: (domain) => set({ selectedDomain: domain }),
   setPriceFilter: (filter) => set({ priceFilter: filter }),
@@ -39,5 +42,6 @@ export const useUIStore = create<UIStore>((set) => ({
   setSortBy: (sort) => set({ sortBy: sort }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSelectedBlueprintId: (id) => set({ selectedBlueprintId: id }),
-  setSelectedPromptType: (type) => set({ selectedPromptType: type })
+  setSelectedPromptType: (type) => set({ selectedPromptType: type }),
+  setIsAuthModalOpen: (val) => set({ isAuthModalOpen: val })
 }));

@@ -9,8 +9,7 @@ interface BlueprintCardProps {
   id: string;
   username: string;
   repo: string;
-  title: string;
-  nodesCount: number;
+  title: string;  description?: string;  nodesCount: number;
   price: number;
   originType?: 'official' | 'creator' | 'ai_generated' | 'remixed';
   onClick?: () => void;
@@ -18,7 +17,7 @@ interface BlueprintCardProps {
   onToggleBookmark: (e: React.MouseEvent) => void;
 }
 
-const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title, nodesCount, price, originType, onClick, isBookmarked, onToggleBookmark }) => (
+const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title, description, nodesCount, price, originType, onClick, isBookmarked, onToggleBookmark }) => (
   <div onClick={onClick} className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer relative z-0">
     
     {originType === 'official' ? (
@@ -50,9 +49,7 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ id, username, repo, title
     </div>
     <div className="p-4 flex flex-col flex-1">
       <div className="text-xs text-fg-muted font-mono mb-1 truncate w-full max-w-full">{username}/{repo}</div>
-      <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-3 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>
-      
-      <div className="text-xs text-fg-muted mb-4 mt-auto">
+      <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-1 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>      {description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{description}</p>}            <div className="text-xs text-fg-muted mb-4 mt-auto">
         {nodesCount} Nodes
       </div>
       
@@ -332,8 +329,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                   id={bp.id}
                   username={bp.creator?.name?.replace('@', '') || 'unknown'}
                   repo={bp.slug}
-                  title={bp.title}
-                  nodesCount={bp.nodesCount}
+                  title={bp.title}                  description={bp.description}                  nodesCount={bp.nodesCount}
                   price={bp.price}
                   originType={bp.source}
                   onClick={() => {

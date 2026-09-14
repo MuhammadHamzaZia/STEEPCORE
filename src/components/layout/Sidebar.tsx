@@ -135,10 +135,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
           <Plus size={16} />
           Create / Sell Pattern
         </button>
-        <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]">
-          <Settings size={16} />
-          System Settings
-        </button>
       </div>
     </aside>
   );

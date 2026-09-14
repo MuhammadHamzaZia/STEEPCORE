@@ -254,9 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                         ⚡ Official
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-canvas-inset border border-border-default text-fg-muted">
-                        👤 @{bp.creator.name}
-                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-canvas-inset border border-border-default text-fg-muted">                        👤 @{bp.creator?.name || 'unknown'}                      </span>
                     )}
                     <button
                       onClick={(e) => {
@@ -270,10 +268,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
                   </div>
                 </div>
                 <div className="p-4 flex flex-col flex-1">
-                  <div className="text-xs text-fg-muted font-mono mb-1">{bp.creator.name}/{bp.slug}</div>
-                  <h3 className="font-semibold text-fg-default text-base mb-3 group-hover:text-action-accent transition-colors">{bp.title}</h3>
-                  
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-default">
+                  <div className="text-xs text-fg-muted font-mono mb-1">{bp.creator?.name || 'unknown'}/{bp.slug}</div>
+                  <h3 className="font-semibold text-fg-default text-base mb-1 group-hover:text-action-accent transition-colors line-clamp-1">{bp.title}</h3>                  {bp.description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{bp.description}</p>}                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-default">
                     <div className="flex items-center gap-1.5 text-xs text-fg-muted">
                       <span>{bp.price === 0 ? 'Free' : 'Premium'}</span>
                     </div>
@@ -293,52 +289,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
       {/* Footer */}
       <div className="mt-auto pt-12 pb-4 text-sm text-fg-muted border-t border-border-default w-full max-w-[1000px] flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
         <span>© {new Date().getFullYear()} STEEPCORE, Inc.</span>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => openModal('Terms of Service', 'These are the official terms of service for STEEPCORE. Please use our community responsibly.')} 
-            className="hover:text-action-accent transition-colors"
-          >
-            Terms
-          </button>
-          <button 
-            onClick={() => openModal('Privacy Policy', 'We value your privacy. Your data is encrypted and never sold to third parties.')} 
-            className="hover:text-action-accent transition-colors"
-          >
-            Privacy
-          </button>
-          <button 
-            onClick={() => openModal('Documentation', 'Welcome to the STEEPCORE Docs. Here you will find guides on system architecture, database design, and learning roadmaps.')} 
-            className="hover:text-action-accent transition-colors"
-          >
-            Docs
-          </button>
-        </div>
       </div>
-
-      {/* Info Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-canvas-default border border-border-default rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-4 py-3 border-b border-border-default flex justify-between items-center bg-canvas-subtle">
-              <h3 className="font-semibold text-fg-default">{modalContent.title}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-fg-muted hover:text-fg-default">
-                ✕
-              </button>
-            </div>
-            <div className="p-4 text-sm text-fg-muted leading-relaxed">
-              {modalContent.body}
-            </div>
-            <div className="px-4 py-3 border-t border-border-default bg-canvas-subtle flex justify-end">
-              <button 
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-1.5 bg-canvas-inset border border-border-default hover:bg-canvas-surface rounded-md text-sm font-medium transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

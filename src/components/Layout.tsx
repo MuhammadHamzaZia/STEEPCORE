@@ -15,10 +15,9 @@ interface LayoutProps {
 }
 
 export function Layout({ children, currentPage = 'landing', onNavigate }: LayoutProps) {
-  const { searchQuery, setSearchQuery } = useUIStore();
+  const { searchQuery, setSearchQuery, isAuthModalOpen, setIsAuthModalOpen } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [apiHealth, setApiHealth] = useState<'checking' | 'online' | 'offline'>('checking');
 
@@ -112,10 +111,6 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
             <Plus size={16} />
             <span>Create Blueprint</span>
           </button>
-          
-          <button className="p-2 text-fg-muted hover:text-fg-default transition-colors rounded-md hover:bg-canvas-inset">
-            <Bell size={18} />
-          </button>
 
           {/* User Auth Section */}
           {isAuthenticated && user ? (
@@ -171,7 +166,6 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
         </main>
       </div>
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

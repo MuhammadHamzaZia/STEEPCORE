@@ -43,7 +43,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }, 800);
       }
     } catch (err: any) {
-      console.error(err);
       setErrorMessage(err.message || 'Authentication failed. Please check your credentials.');
     }
   };
