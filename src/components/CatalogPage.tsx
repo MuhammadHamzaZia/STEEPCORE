@@ -104,9 +104,9 @@ interface CatalogPageProps {
 export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: CatalogPageProps) {
   const { 
     searchQuery, setSearchQuery, 
-    selectedDomain, setSelectedDomain,
-    selectedCategoryType, setSelectedCategoryType,
-    selectedIndustry, setSelectedIndustry, 
+        selectedCategoryType, toggleCategoryType,
+    selectedIndustry, toggleIndustry,
+    selectedDomain, toggleDomain,
     priceFilter, setPriceFilter, 
     assetTypeFilter, setAssetTypeFilter,
     sortBy, setSortBy,
@@ -160,9 +160,9 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     const ind = getMockIndustry(bp.title);
     const dom = getMockDomain(bp.title);
     
-    const matchesCatType = selectedCategoryType === 'all' || catType === selectedCategoryType;
-    const matchesInd = selectedIndustry === 'all' || ind === selectedIndustry;
-    const matchesDomain = selectedDomain === 'all' || dom === selectedDomain;
+    const matchesCatType = selectedCategoryType.length === 0 || selectedCategoryType.includes(catType);
+    const matchesInd = selectedIndustry.length === 0 || selectedIndustry.includes(ind);
+    const matchesDomain = selectedDomain.length === 0 || selectedDomain.includes(dom);
     
     const matchesPrice = priceFilter === 'all' || 
                          (priceFilter === 'free' && bp.price === 0) || 
@@ -251,13 +251,13 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
             <ul className="space-y-2 text-sm text-fg-muted">
               {categoryTypes.map((d) => (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedCategoryType(selectedCategoryType === d.name && d.name !== "all" ? "all" : d.name); }}>
                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedCategoryType === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
                       {selectedCategoryType === d.name && <Check size={12} className="text-white" />}
                     </div>
                     <span className={`group-hover:text-fg-default transition-colors ${selectedCategoryType === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+
                   </label>
-                  <input type="radio" name="cattype" value={d.name} checked={selectedCategoryType === d.name} onChange={() => setSelectedCategoryType(d.name)} className="hidden" />
                 </li>
               ))}
             </ul>
@@ -272,13 +272,13 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
             <ul className="space-y-2 text-sm text-fg-muted">
               {industries.map((d) => (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedIndustry(selectedIndustry === d.name && d.name !== "all" ? "all" : d.name); }}>
                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedIndustry === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
                       {selectedIndustry === d.name && <Check size={12} className="text-white" />}
                     </div>
                     <span className={`group-hover:text-fg-default transition-colors ${selectedIndustry === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+
                   </label>
-                  <input type="radio" name="industry" value={d.name} checked={selectedIndustry === d.name} onChange={() => setSelectedIndustry(d.name)} className="hidden" />
                 </li>
               ))}
             </ul>
@@ -293,13 +293,13 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
             <ul className="space-y-2 text-sm text-fg-muted">
               {domainsList.map((d) => (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedDomain(selectedDomain === d.name && d.name !== "all" ? "all" : d.name); }}>
                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedDomain === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
                       {selectedDomain === d.name && <Check size={12} className="text-white" />}
                     </div>
                     <span className={`group-hover:text-fg-default transition-colors ${selectedDomain === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
+
                   </label>
-                  <input type="radio" name="domain" value={d.name} checked={selectedDomain === d.name} onChange={() => setSelectedDomain(d.name)} className="hidden" />
                 </li>
               ))}
             </ul>
