@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Sparkles, Globe, Cloud, BrainCircuit, Database, Star, GitMerge, Loader2 } from 'lucide-react';
+import { ChevronDown, Sparkles, Globe, Cloud, BrainCircuit, Database, Star, GitMerge } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
@@ -237,7 +237,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
         
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-action-accent" />
+            <img src="/loader.svg" alt="Loading"  className="w-8 h-8 animate-spin text-action-accent object-contain"  />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

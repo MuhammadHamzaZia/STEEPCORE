@@ -186,9 +186,9 @@ export const api = {
   },
 
   // Blueprints
-  async getBlueprints(domainFilter?: string): Promise<Blueprint[]> {
+  async getBlueprints(page: number = 1, pageSize: number = 12, domainFilter?: string): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<any[]>('/api/Blueprints/published');
+      const data = await apiClient.get<any[]>(`/api/Blueprints/published?pageNumber=${page}&pageSize=${pageSize}`);
       if (Array.isArray(data)) {
         let formatted = data.map(item => ({
           ...item,

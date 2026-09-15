@@ -103,6 +103,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     return data;
   } catch (err: any) {
+    if (err.message && (err.message.includes('429') || err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('rate limit'))) {
+       throw new Error('The AI free generation quota has been exceeded. Please try again later.');
+    }
     console.warn(`[apiClient] Request to ${endpoint} failed:`, err.message || err);
     
     // Intercept standard browser network/CORS errors

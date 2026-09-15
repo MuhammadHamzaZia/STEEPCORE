@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Loader2, Sparkles, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Sparkles, Check } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
@@ -116,6 +116,12 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const { savedBlueprintIds, toggleBookmark } = useLibraryStore();
   const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  
 
   const [categoryTypes, setCategoryTypes] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Categories' }]);
   const [industries, setIndustries] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Industries' }]);
@@ -126,30 +132,60 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
 
   
   useEffect(() => {
-    const fetchBlueprints = async () => {
-      setIsLoading(true);
+    const fetchTaxonomy = async () => {
       try {
-        const [bps, cats, inds, doms] = await Promise.all([
-          api.getBlueprints(),
+        const [cats, inds, doms] = await Promise.all([
           api.getCategories(),
           api.getIndustries(),
           api.getDomains()
         ]);
-        setBlueprints(bps);
         setCategoryTypes(cats);
         setIndustries(inds);
         setDomainsList(doms);
       } catch (error) {
-        console.error('Failed to fetch data', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to fetch taxonomy data', error);
       }
     };
-    fetchBlueprints();
+    fetchTaxonomy();
   }, []);
+
+  useEffect(() => {
+    const fetchBlueprintsPage = async () => {
+      if (page === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
+      
+      try {
+        const bps = await api.getBlueprints(page, 50);
+        if (bps.length < 50) {
+          setHasMore(false);
+        }
+        if (page === 1) {
+          setBlueprints(bps);
+        } else {
+          setBlueprints(prev => {
+            const newBps = [...prev];
+            bps.forEach(bp => {
+               if (!newBps.find(b => b.id === bp.id)) newBps.push(bp);
+            });
+            return newBps;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch blueprints', error);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    };
+    fetchBlueprintsPage();
+  }, [page]);
+
+  
 
 
   
+  
+
   const filteredBlueprints = React.useMemo(() => blueprints.filter(bp => {
     const q = searchQuery?.toLowerCase() || '';
     const matchesSearch = !q || 
@@ -179,19 +215,31 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     return 0; // popular is handled by default order
   }), [blueprints, searchQuery, selectedCategoryType, selectedIndustry, selectedDomain, priceFilter, assetTypeFilter, sortBy]);
 
-  // Group blueprints by category
-  const groupedBlueprints = React.useMemo(() => filteredBlueprints.reduce((acc, bp) => {
-    const cat = getMockCategoryType(bp.title);
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(bp);
-    return acc;
-  }, {}), [filteredBlueprints]);
+  
 
 
   
   
   
 
+
+  const lastBlueprintElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isLoadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLoading, isLoadingMore, hasMore]);
+
+  // Auto-fetch more if filters hide too many items
+  useEffect(() => {
+    if (!isLoading && !isLoadingMore && hasMore && filteredBlueprints.length < 12) {
+      setPage(prev => prev + 1);
+    }
+  }, [isLoading, isLoadingMore, hasMore, filteredBlueprints.length]);
 
   const sortOptions = [
     { id: 'popular', label: 'Most Recent' },
@@ -249,17 +297,24 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
               <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
             </div>
             <ul className="space-y-2 text-sm text-fg-muted">
-              {categoryTypes.map((d) => (
+              {categoryTypes.map((d) => {
+                const isSelected = d.name === 'all' ? selectedCategoryType.length === 0 : selectedCategoryType.includes(d.name);
+                return (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedCategoryType(selectedCategoryType === d.name && d.name !== "all" ? "all" : d.name); }}>
-                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedCategoryType === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
-                      {selectedCategoryType === d.name && <Check size={12} className="text-white" />}
+                  <label 
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleCategoryType(d.name);
+                    }}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
                     </div>
-                    <span className={`group-hover:text-fg-default transition-colors ${selectedCategoryType === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
-
+                    <span className={`group-hover:text-fg-default transition-colors ${isSelected ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
                   </label>
                 </li>
-              ))}
+              );})}
             </ul>
           </div>
 
@@ -270,17 +325,24 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
               <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
             </div>
             <ul className="space-y-2 text-sm text-fg-muted">
-              {industries.map((d) => (
+              {industries.map((d) => {
+                const isSelected = d.name === 'all' ? selectedIndustry.length === 0 : selectedIndustry.includes(d.name);
+                return (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedIndustry(selectedIndustry === d.name && d.name !== "all" ? "all" : d.name); }}>
-                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedIndustry === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
-                      {selectedIndustry === d.name && <Check size={12} className="text-white" />}
+                  <label 
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleIndustry(d.name);
+                    }}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
                     </div>
-                    <span className={`group-hover:text-fg-default transition-colors ${selectedIndustry === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
-
+                    <span className={`group-hover:text-fg-default transition-colors ${isSelected ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
                   </label>
                 </li>
-              ))}
+              );})}
             </ul>
           </div>
 
@@ -291,17 +353,24 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
               <ChevronDown size={16} className="text-fg-muted group-hover:text-action-accent transition-colors" />
             </div>
             <ul className="space-y-2 text-sm text-fg-muted">
-              {domainsList.map((d) => (
+              {domainsList.map((d) => {
+                const isSelected = d.name === 'all' ? selectedDomain.length === 0 : selectedDomain.includes(d.name);
+                return (
                 <li key={d.name}>
-                  <label className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); setSelectedDomain(selectedDomain === d.name && d.name !== "all" ? "all" : d.name); }}>
-                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedDomain === d.name ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
-                      {selectedDomain === d.name && <Check size={12} className="text-white" />}
+                  <label 
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleDomain(d.name);
+                    }}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-action-primary border-action-primary' : 'border-border-default group-hover:border-fg-muted'}`}>
+                      {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
                     </div>
-                    <span className={`group-hover:text-fg-default transition-colors ${selectedDomain === d.name ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
-
+                    <span className={`group-hover:text-fg-default transition-colors ${isSelected ? 'text-fg-default font-medium' : ''}`}>{d.label}</span>
                   </label>
                 </li>
-              ))}
+              );})}
             </ul>
           </div>
 
@@ -361,7 +430,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                 <a href="#" className="hover:text-action-accent transition-colors">Marketplace</a>
                 <ChevronRight size={14} />
                 <span className="text-fg-default font-medium">
-                  {selectedDomain === 'all' ? 'All Domains' : domainsList.find(d => d.name === selectedDomain)?.label}
+                  {selectedDomain.length === 0 ? 'All Domains' : selectedDomain.map(sd => domainsList.find(d => d.name === sd)?.label).join(', ')}
                 </span>
               </div>
               <p className="text-xs text-fg-muted">Showing {filteredBlueprints.length} results</p>
@@ -418,9 +487,9 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
         <div className="p-6">
           {isLoading ? (
              <div className="flex justify-center items-center py-12">
-               <Loader2 className="w-8 h-8 animate-spin text-action-accent" />
+               <img src="/loader.svg" alt="Loading"  className="w-8 h-8 animate-spin text-action-accent object-contain"  />
              </div>
-          ) : filteredBlueprints.length === 0 ? (
+          ) : filteredBlueprints.length === 0 && !hasMore ? (
             <div className="bg-canvas-surface border border-border-default rounded-lg p-12 max-w-md mx-auto text-center mt-12">
                <Sparkles className="w-10 h-10 text-action-accent mx-auto mb-4 opacity-80" />
                <h3 className="text-lg font-semibold text-fg-default mb-2 tracking-tight">No blueprints found matching your criteria</h3>
@@ -439,32 +508,29 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
           ) : (
             
             <div className="flex flex-col gap-10 w-full pb-20 md:pb-6">
-              {Object.entries(groupedBlueprints).map(([category, bps]) => (
-                <div key={category} className="flex flex-col gap-4">
-                  <h2 className="text-xl font-bold text-fg-default flex items-center gap-2">
-                    {category}
-                    <span className="text-xs font-normal text-fg-muted bg-canvas-inset px-2 py-0.5 rounded-full border border-border-default">{(bps as any).length}</span>
-                  </h2>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6">
-                    {(bps as any).map((bp: any) => (
-                      <BlueprintCard 
-                        key={bp.id}
-                        id={bp.id}
-                        username={bp.creator?.name?.replace('@', '') || 'unknown'}
-                        repo={bp.slug}
-                        title={bp.title}
-                        description={bp.description}
-                        nodesCount={bp.nodesCount}
-                        price={bp.price}
-                        originType={bp.source}
-                        onCardClick={handleCardClick}
-                        isBookmarked={savedBlueprintIds.includes(bp.id)}
-                        onBookmarkClick={handleBookmarkClick}
-                      />
-                    ))}
-                  </div>
-                </div>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6 w-full">
+              {filteredBlueprints.map((bp: any) => (
+                <BlueprintCard 
+                  key={bp.id}
+                  id={bp.id}
+                  username={bp.creator?.name?.replace('@', '') || 'unknown'}
+                  repo={bp.slug}
+                  title={bp.title}
+                  description={bp.description}
+                  nodesCount={bp.nodesCount}
+                  price={bp.price}
+                  originType={bp.source}
+                  onCardClick={handleCardClick}
+                  isBookmarked={savedBlueprintIds.includes(bp.id)}
+                  onBookmarkClick={handleBookmarkClick}
+                />
               ))}
+              {hasMore && (
+                <div ref={lastBlueprintElementRef} className="col-span-full py-8 flex justify-center items-center">
+                   <img src="/loader.svg" alt="Loading"  className="w-6 h-6 animate-spin text-action-accent opacity-50 object-contain"  />
+                </div>
+              )}
+            </div>
             </div>
 
           )}

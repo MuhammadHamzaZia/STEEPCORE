@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ExternalLink, Sparkles, Check, Star, ShieldCheck, Download, Code, GitBranch, Loader2, Lock } from 'lucide-react';
+import { ChevronRight, ExternalLink, Sparkles, Check, Star, ShieldCheck, Download, Code, GitBranch, Lock } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
@@ -212,7 +212,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
                     className="mt-2 bg-action-primary hover:bg-action-primary-hover text-white px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessingCheckout ? (
-                      <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Requesting...</span>
+                      <span className="flex items-center gap-2"><img src="/loader.svg" alt="Loading" className="animate-spin object-contain" style={{ width: 14, height: 14 }} /> Requesting...</span>
                     ) : isAccessRequested ? (
                       'Access Requested ✓'
                     ) : (
@@ -245,7 +245,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
         <div className="w-full lg:w-[35%] flex flex-col gap-6">
           
           {/* Purchase Card */}
-          <div className="bg-canvas-surface border border-border-default rounded-lg p-6 sticky top-[88px]">
+          <div className="bg-canvas-surface border border-border-default rounded-lg p-6">
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-2">Commercial License</h3>
               <div className="flex items-baseline gap-2">
@@ -264,7 +264,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
                     🚀 {isCreator ? 'Check and Edit' : 'Open in Flowchart Editor'}
                   </>
                 ) : isProcessingCheckout ? (
-                  <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing...</span>
+                  <span className="flex items-center gap-2"><img src="/loader.svg" alt="Loading" className="animate-spin object-contain" style={{ width: 16, height: 16 }} /> Processing...</span>
                 ) : isAccessRequested ? (
                   'Access Requested ✓'
                 ) : (

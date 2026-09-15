@@ -2,17 +2,10 @@ import fs from 'fs';
 
 let code = fs.readFileSync('src/services/api.ts', 'utf8');
 
-const target = `  // Checkout Module`;
-const replace = `  async requestBlueprintAccess(blueprintId: string) {
-    return apiClient.post('/api/AccessRequests', { blueprintId });
-  },
+code = code.replace(
+  /async getBlueprints\(domainFilter\?: string\): Promise<Blueprint\[\]> \{[\s\S]*?const data = await apiClient\.get<any\[\]>\('\/api\/Blueprints\/published'\);/,
+  "async getBlueprints(page: number = 1, pageSize: number = 12, domainFilter?: string): Promise<Blueprint[]> {\n    try {\n      const data = await apiClient.get<any[]>(`/api/Blueprints/published?page=${page}&pageSize=${pageSize}`);"
+);
 
-  // Checkout Module`;
-
-if (code.includes(target)) {
-  code = code.replace(target, replace);
-  fs.writeFileSync('src/services/api.ts', code);
-  console.log("Success");
-} else {
-  console.log("Not found");
-}
+fs.writeFileSync('src/services/api.ts', code);
+console.log('patched api');

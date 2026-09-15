@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, Loader2, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Lock, Mail, User, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
 interface AuthModalProps {
@@ -141,7 +141,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               disabled={isLoading}
               className="w-full bg-[#238636] hover:bg-[#2ea043] text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 border border-[rgba(255,255,255,0.1)] shadow-sm disabled:opacity-50"
             >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
+              {isLoading && <img src="/loader.svg" alt="Loading" className="animate-spin object-contain" style={{ width: 16, height: 16 }} />}
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
 

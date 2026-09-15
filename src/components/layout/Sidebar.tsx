@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
   };
 
   return (
-    <aside className="w-[260px] h-full bg-[#0d1117] border-r border-[#30363d] flex flex-col text-[#e6edf3] shrink-0">
+    <aside className="flex w-[260px] h-full bg-[#0d1117] border-r border-[#30363d] flex-col text-[#e6edf3] shrink-0 z-10">
       <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
         {/* Main Nav */}
         <div className="space-y-1 mb-8">

@@ -38,19 +38,20 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
   }, []);
 
   return (
-    <div className="h-screen w-full bg-canvas-default text-fg-default font-sans flex flex-col overflow-hidden">
-      {/* Global Header */}
-      <header className="h-[56px] border-b border-border-default bg-canvas-default flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 cursor-pointer">
+    <div className="flex flex-col h-screen bg-canvas-default text-fg-default font-sans">
+      
+      {/* Header */}
+      <header className="h-14 bg-canvas-inset border-b border-border-default flex items-center justify-between px-4 sticky top-0 z-40">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-3">
             <div 
-              className="w-8 h-8 bg-canvas-inset border border-border-default rounded-md flex items-center justify-center hover:bg-canvas-surface transition-colors"
+              className="w-8 h-8 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             > 
-              <Terminal size={20} className="text-fg-default" />
+              <img src="/logo.svg" alt="Steepcore Logo" className="w-8 h-8 object-contain" />
             </div>
             <span 
-              className="font-semibold text-fg-default tracking-tight hidden sm:block"
+              className="font-bold text-fg-default tracking-tight cursor-pointer ml-2 text-lg"
               onClick={() => onNavigate && onNavigate('landing')}
             >
               STEEPCORE
@@ -122,10 +123,33 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-56 bg-[#161b22] border border-[#30363d] rounded-lg shadow-2xl z-50 py-2 text-sm">
-                    <div className="px-4 py-2 border-b border-[#30363d] text-xs">
+                    <div 
+                      className="px-4 py-3 border-b border-[#30363d] text-xs cursor-pointer hover:bg-[#010409] transition-colors"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        if (onNavigate) {
+                          onNavigate('dashboard');
+                          useUIStore.getState().setActiveTab('profile');
+                        }
+                      }}
+                    >
                       <p className="font-semibold text-[#e6edf3] truncate">{user.username}</p>
                       <p className="text-[#7d8590] truncate">{user.email}</p>
+                      <div className="mt-2 text-action-primary font-medium flex items-center gap-1">View Profile & Progress <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span></div>
                     </div>
+                    <button 
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        if (onNavigate) {
+                          onNavigate('dashboard');
+                          // Need a way to set active tab, maybe via useUIStore
+                          useUIStore.getState().setActiveTab('roadmaps');
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2 text-[#c9d1d9] hover:bg-[#010409] flex items-center gap-2 text-xs transition-colors"
+                    >
+                      <Activity size={14} /> My Active Roadmaps
+                    </button>
                     <button 
                       onClick={() => {
                         logout();
@@ -153,7 +177,19 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {onNavigate && isSidebarOpen && <Sidebar onNavigate={onNavigate} currentPage={currentPage} />}
+        
+        {onNavigate && isSidebarOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+            <div className="fixed inset-y-0 left-0 z-50 md:relative md:z-auto">
+              <Sidebar onNavigate={(page) => {
+                if (window.innerWidth < 768) setIsSidebarOpen(false);
+                onNavigate(page);
+              }} currentPage={currentPage} />
+            </div>
+          </>
+        )}
+
         <main className="flex-1 flex flex-col overflow-y-auto">
           {children}
         </main>

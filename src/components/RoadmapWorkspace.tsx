@@ -11,11 +11,13 @@ import {
   Node,
   Panel,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  getNodesBounds,
+  getViewportForBounds
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { 
-  Loader2, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
+import {
+  AlertCircle, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
   LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, 
   Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon
 } from 'lucide-react';
@@ -48,6 +50,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentBlueprintId, setCurrentBlueprintId] = useState<string | undefined>(initialBlueprintId);
   
   // UI State
@@ -125,29 +128,66 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   };
 
   
-  const handleDownloadPdf = async () => {
-    const element = document.querySelector('.react-flow') as HTMLElement;
+    const handleDownloadPdf = async () => {
+    const { getNodes } = reactFlowInstance;
+    const nodes = getNodes();
+    if (nodes.length === 0) return;
+    
+    // We capture the viewport which contains the nodes, not the container, 
+    // so it doesn't include controls/minimap automatically.
+    const element = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!element) return;
     
     try {
+      const nodesBounds = getNodesBounds(nodes);
+      const padding = 50;
+      
+      const width = nodesBounds.width + padding * 2;
+      const height = nodesBounds.height + padding * 2;
+      
+      const transform = getViewportForBounds(
+        nodesBounds,
+        width,
+        height,
+        0.5,
+        2,
+        0.1 // padding
+      );
+      
       const dataUrl = await toPng(element, {
         backgroundColor: '#0d1117',
-        pixelRatio: 2,
-        filter: (node) => {
-          if (node.classList?.contains('react-flow__minimap') || node.classList?.contains('react-flow__controls')) {
-            return false;
-          }
-          return true;
-        }
+        width: width,
+        height: height,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
+        },
       });
+      
+      // We will create a paginated A4 document if it's large, ensuring 100% readability.
+      // Standard A4 dimensions in px (72 dpi)
+      const a4Width = 595.28;
+      const a4Height = 841.89;
       
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'px',
-        format: [element.offsetWidth, element.offsetHeight]
+        format: [a4Width, a4Height]
       });
       
-      pdf.addImage(dataUrl, 'PNG', 0, 0, element.offsetWidth, element.offsetHeight);
+      const pagesX = Math.ceil(width / a4Width);
+      const pagesY = Math.ceil(height / a4Height);
+      
+      for (let y = 0; y < pagesY; y++) {
+        for (let x = 0; x < pagesX; x++) {
+          if (x > 0 || y > 0) {
+            pdf.addPage([a4Width, a4Height], 'portrait');
+          }
+          pdf.addImage(dataUrl, 'PNG', -x * a4Width, -y * a4Height, width, height);
+        }
+      }
+      
       pdf.save(`${currentBlueprintId ? 'blueprint-' + currentBlueprintId : 'roadmap'}.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);
@@ -275,6 +315,13 @@ const openSaveModal = () => {
       }
     } catch (err: any) {
       console.error(err);
+      const msg = err?.message || 'An error occurred while generating the roadmap.';
+      if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) {
+        setErrorMsg('The AI free generation quota has been exceeded. Please try again later.');
+      } else {
+        setErrorMsg(msg);
+      }
+      setTimeout(() => setErrorMsg(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -437,7 +484,7 @@ const openSaveModal = () => {
                   {isChatLoading && (
                     <div className="flex justify-start">
                       <div className="text-fg-muted px-3 py-2 text-sm flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
+                        <img src="/loader.svg" alt="Loading"  className="w-4 h-4 animate-spin object-contain"  /> Thinking...
                       </div>
                     </div>
                   )}
@@ -470,7 +517,7 @@ const openSaveModal = () => {
           {isLoading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0d1117]/80 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-action-accent" />
+                <img src="/loader.svg" alt="Loading"  className="w-8 h-8 animate-spin text-action-accent object-contain"  />
                 <p className="text-fg-muted font-mono text-sm animate-pulse">Processing graph vectors...</p>
               </div>
             </div>
@@ -566,6 +613,16 @@ const openSaveModal = () => {
         )}
       </div>
 
+      {errorMsg && (
+        <div className="absolute top-4 right-4 z-50 bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-md shadow-lg flex items-start gap-3 max-w-sm animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm font-medium leading-relaxed">{errorMsg}</div>
+          <button onClick={() => setErrorMsg(null)} className="shrink-0 hover:opacity-70 transition-opacity">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      
       {isSaveModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-canvas-surface border border-border-default rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -600,7 +657,7 @@ const openSaveModal = () => {
               <div className="pt-4 border-t border-border-default flex justify-end gap-2">
                 <button type="button" onClick={() => setIsSaveModalOpen(false)} className="px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-default bg-canvas-inset hover:bg-canvas-default border border-border-default rounded-md">Cancel</button>
                 <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-action-primary hover:bg-action-primary-hover rounded-md flex items-center disabled:opacity-50">
-                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {isSaving ? <img src="/loader.svg" alt="Loading"  className="w-4 h-4 mr-2 animate-spin object-contain"  /> : null}
                   {isSaving ? 'Saving...' : 'Save Roadmap'}
                 </button>
               </div>
