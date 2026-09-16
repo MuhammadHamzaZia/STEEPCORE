@@ -69,9 +69,24 @@ async function startServer() {
       const jsonStr = response.text;
       const data = JSON.parse(jsonStr);
       res.json(data);
-    } catch (e) {
+    } catch (e: any) {
       console.error("AI Error:", e);
-      res.status(500).json({ error: e.message });
+      let errMsg = e.message || "Unknown error";
+      
+      try {
+        if (errMsg.includes('{')) {
+           const jsonPart = errMsg.substring(errMsg.indexOf('{'));
+           const parsed = JSON.parse(jsonPart);
+           if (parsed.error && parsed.error.message) {
+             errMsg = parsed.error.message;
+           }
+        }
+      } catch(err) {}
+      
+      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE')) {
+        errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+      }
+      res.status(503).json({ error: errMsg });
     }
   });
 
@@ -157,9 +172,24 @@ Make sure your text response is friendly, helpful, and concise.`;
       }
 
       res.json({ text, actions });
-    } catch (e) {
+    } catch (e: any) {
       console.error("AI Chat Error:", e);
-      res.status(500).json({ error: e.message });
+      let errMsg = e.message || "Unknown error";
+      
+      try {
+        if (errMsg.includes('{')) {
+           const jsonPart = errMsg.substring(errMsg.indexOf('{'));
+           const parsed = JSON.parse(jsonPart);
+           if (parsed.error && parsed.error.message) {
+             errMsg = parsed.error.message;
+           }
+        }
+      } catch(err) {}
+      
+      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE')) {
+        errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+      }
+      res.status(503).json({ error: errMsg });
     }
   });
 

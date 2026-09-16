@@ -4,13 +4,15 @@ let content = fs.readFileSync('src/components/DashboardPage.tsx', 'utf8');
 
 const t1 = `  GitMerge,
   Clock,
-  Play
+  Play,
+  User
 } from 'lucide-react';`;
 
 const r1 = `  GitMerge,
   Clock,
   Play,
-  User
+  User,
+  Activity
 } from 'lucide-react';`;
 
 content = content.replace(t1, r1);

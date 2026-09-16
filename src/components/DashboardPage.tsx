@@ -8,12 +8,15 @@ import {
   Settings,
   GitMerge,
   Clock,
-  Play
+  Play,
+  User,
+  Activity
 } from 'lucide-react';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
 import { Blueprint } from '../types/schema';
 import { useUIStore } from '../store/useUIStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface DashboardPageProps {
   onNavigateToEditor?: () => void;
@@ -24,6 +27,7 @@ type TabId = 'overview' | 'roadmaps' | 'saved' | 'created' | 'profile';
 
 export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: DashboardPageProps) {
   const { savedBlueprintIds, activeRoadmaps } = useLibraryStore();
+  const { user } = useAuthStore();
   const { setSelectedBlueprintId, activeTab: globalActiveTab, setActiveTab: setGlobalActiveTab } = useUIStore();
   
   const [savedBlueprints, setSavedBlueprints] = useState<Blueprint[]>([]);

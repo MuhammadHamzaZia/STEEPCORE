@@ -94,7 +94,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       }
       
       if (response.status === 503) {
-        throw new Error('STEEPCOREAPI AI service is currently busy or warming up (503 Service Unavailable). Please try again in a few seconds.');
+        if (msg) throw new Error(msg);
+        throw new Error('The AI service is currently busy or warming up (503). Please try again in a few seconds.');
       }
       throw new Error(msg);
     }

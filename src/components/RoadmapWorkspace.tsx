@@ -553,10 +553,14 @@ const openSaveModal = () => {
         {/* Center Canvas */}
         <div className="flex-1 relative bg-[#0d1117]">
           {isLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0d1117]/80 backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-3">
-                <img src="/loader.svg" alt="Loading"  className="w-8 h-8 animate-spin text-action-accent object-contain"  />
-                <p className="text-fg-muted font-mono text-sm animate-pulse">Processing graph vectors...</p>
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas-default/80 backdrop-blur-md transition-all duration-300">
+              <div className="bg-canvas-surface border border-border-default rounded-xl shadow-2xl p-6 flex flex-col items-center justify-center text-center relative max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-300">
+                <div className="absolute inset-0 bg-action-primary/5 blur-3xl rounded-full"></div>
+                <img src="/loader.svg" alt="Loading" className="w-12 h-12 animate-spin mb-4 object-contain drop-shadow-md z-10" />
+                <p className="text-fg-muted text-sm font-medium flex items-center gap-2 z-10 bg-canvas-inset px-4 py-1.5 rounded-full border border-border-default">
+                  <span className="inline-block w-2 h-2 rounded-full bg-action-primary animate-pulse shadow-[0_0_8px_rgba(35,134,54,0.6)]"></span>
+                  Generating vectors...
+                </p>
               </div>
             </div>
           )}
@@ -652,10 +656,19 @@ const openSaveModal = () => {
       </div>
 
       {errorMsg && (
-        <div className="absolute top-4 right-4 z-50 bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-md shadow-lg flex items-start gap-3 max-w-sm animate-in fade-in slide-in-from-top-2">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="flex-1 text-sm font-medium leading-relaxed">{errorMsg}</div>
-          <button onClick={() => setErrorMsg(null)} className="shrink-0 hover:opacity-70 transition-opacity">
+        <div className="absolute top-4 right-4 z-50 bg-canvas-surface border-l-4 border-l-red-500 border border-border-default px-4 py-3 rounded-md shadow-2xl flex items-start gap-3 max-w-[300px] animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+          <div className="flex-1 text-xs font-medium leading-relaxed text-fg-default">
+            {(() => {
+              try {
+                const parsed = JSON.parse(errorMsg);
+                if (parsed.error && parsed.error.message) return parsed.error.message;
+                if (parsed.message) return parsed.message;
+              } catch (e) {}
+              return errorMsg;
+            })()}
+          </div>
+          <button onClick={() => setErrorMsg(null)} className="shrink-0 hover:text-red-400 text-fg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
