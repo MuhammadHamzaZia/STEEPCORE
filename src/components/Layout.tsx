@@ -38,7 +38,7 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-canvas-default text-fg-default font-sans">
+    <div className="flex flex-col flex-1 h-full w-full bg-canvas-default text-fg-default font-sans">
       
       {/* Header */}
       <header className="h-14 bg-canvas-inset border-b border-border-default flex items-center justify-between px-4 sticky top-0 z-40">
@@ -91,7 +91,7 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
               Explore
             </button>
             <button 
-              onClick={() => onNavigate && onNavigate('dashboard')}
+              onClick={() => { if(onNavigate){ useUIStore.getState().setActiveTab('saved'); onNavigate('dashboard'); } }}
               className="text-fg-muted hover:text-fg-default transition-colors"
             >
               My Library
@@ -190,7 +190,7 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
           </>
         )}
 
-        <main className="flex-1 flex flex-col overflow-y-auto">
+        <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
           {children}
         </main>
       </div>

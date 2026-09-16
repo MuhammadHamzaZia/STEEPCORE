@@ -46,7 +46,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   const baseUrlSanitized = BASE_URL.replace(/\/$/, '');
   const endpointSanitized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
+  
+  let url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
+  // Route AI requests to local Express server instead of remote backend
+  if (endpoint.toLowerCase().includes('/api/ai/')) {
+    url = endpointSanitized;
+  }
+
 
   try {
     const response = await fetch(url, { ...options, headers });

@@ -299,8 +299,11 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
                   <p className="text-fg-muted mb-6">{user?.email}</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-canvas-inset border border-border-default rounded-lg p-4 shadow-sm flex flex-col items-center md:items-start">
-                      <div className="text-sm text-fg-muted mb-1 flex items-center gap-1.5"><BrainCircuit size={14} className="text-action-accent" /> Active Roadmaps</div>
+                    <div 
+                      onClick={() => setActiveTab('roadmaps')}
+                      className="bg-canvas-inset border border-border-default rounded-lg p-4 shadow-sm flex flex-col items-center md:items-start cursor-pointer hover:border-action-primary/50 transition-colors group"
+                    >
+                      <div className="text-sm text-fg-muted mb-1 flex items-center gap-1.5 group-hover:text-action-primary transition-colors"><BrainCircuit size={14} className="text-action-accent" /> Active Roadmaps</div>
                       <div className="text-2xl font-bold text-fg-default">{activeRoadmapsList.length}</div>
                     </div>
                     <div className="bg-canvas-inset border border-border-default rounded-lg p-4 shadow-sm flex flex-col items-center md:items-start">
@@ -311,8 +314,11 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
                           : 0}%
                       </div>
                     </div>
-                    <div className="bg-canvas-inset border border-border-default rounded-lg p-4 shadow-sm flex flex-col items-center md:items-start">
-                      <div className="text-sm text-fg-muted mb-1 flex items-center gap-1.5"><Package size={14} className="text-blue-400" /> Saved Items</div>
+                    <div 
+                      onClick={() => setActiveTab('saved')}
+                      className="bg-canvas-inset border border-border-default rounded-lg p-4 shadow-sm flex flex-col items-center md:items-start cursor-pointer hover:border-blue-400/50 transition-colors group"
+                    >
+                      <div className="text-sm text-fg-muted mb-1 flex items-center gap-1.5 group-hover:text-blue-400 transition-colors"><Package size={14} className="text-blue-400" /> Saved Items</div>
                       <div className="text-2xl font-bold text-fg-default">{savedBlueprints.length}</div>
                     </div>
                   </div>

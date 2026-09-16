@@ -95,13 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
                 <span className="bg-[#21262d] text-xs py-0.5 px-2 rounded-full">{savedBlueprintIds.length}</span>
               )}
             </button>
-            <button 
-              onClick={() => onNavigate('dashboard')}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"
-            >
-              <div className="flex items-center gap-3">
-                <PenTool size={16} />
-                My Published Patterns
+            <button onClick={() => { useUIStore.getState().setActiveTab('created'); onNavigate('dashboard'); }} className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"><div className="flex items-center gap-3"><PenTool size={16} />My Published Patterns
               </div>
             </button>
           </div>

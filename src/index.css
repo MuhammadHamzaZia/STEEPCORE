@@ -52,3 +52,16 @@
     background-position: 32px 0;
   }
 }
+
+
+
+html, body, #root {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
