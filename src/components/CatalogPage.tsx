@@ -17,9 +17,46 @@ interface BlueprintCardProps {
   onBookmarkClick: (e: React.MouseEvent, id: string) => void;
 }
 
-const BlueprintCard = React.memo<BlueprintCardProps>(({ id, username, repo, title, description, nodesCount, price, originType, onCardClick, isBookmarked, onBookmarkClick }) => (
-  <div onClick={() => onCardClick && onCardClick(id)} className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer relative z-0">
+const BlueprintSkeletonCard = React.memo(() => (
+  <div className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden flex flex-col relative z-0 animate-pulse">
+    <div className="absolute top-3 left-3 w-16 h-5 bg-border-default/50 rounded z-10"></div>
+    <div className="absolute top-3 right-3 w-7 h-7 bg-canvas-default border border-border-default rounded-md z-10 flex items-center justify-center">
+      <div className="w-3.5 h-3.5 bg-border-default/40 rounded-sm"></div>
+    </div>
     
+    <div className="h-36 bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-4">
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
+      <div className="w-12 h-12 rounded-lg bg-border-default/20 flex items-center justify-center">
+        <GitMerge size={32} className="text-fg-muted opacity-20" />
+      </div>
+    </div>
+    
+    <div className="p-4 flex flex-col flex-1">
+      <div className="w-24 h-3 bg-border-default/40 rounded mb-2"></div>
+      <div className="w-4/5 h-4 bg-border-default/70 rounded mb-1.5"></div>
+      <div className="w-3/5 h-4 bg-border-default/70 rounded mb-3"></div>
+      
+      <div className="w-full h-2.5 bg-border-default/30 rounded mb-1.5"></div>
+      <div className="w-4/5 h-2.5 bg-border-default/30 rounded mb-4 mt-auto"></div>
+      
+      <div className="w-16 h-3 bg-border-default/40 rounded mb-4"></div>
+      
+      <div className="flex items-center justify-between pt-3 border-t border-border-default">
+        <div className="w-10 h-3.5 bg-border-default/40 rounded"></div>
+        <div className="w-12 h-5 bg-border-default/50 rounded"></div>
+      </div>
+    </div>
+  </div>
+));
+
+const BlueprintCard = React.memo<BlueprintCardProps>(({ id, username, repo, title, description, nodesCount, price, originType, onCardClick, isBookmarked, onBookmarkClick }) => (
+  <div 
+    onClick={() => onCardClick && onCardClick(id)} 
+    onMouseEnter={() => {
+      api.getBlueprintById(id).catch(() => {});
+    }}
+    className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-all flex flex-col group cursor-pointer relative z-0 animate-in fade-in duration-200"
+  >
     {originType === 'official' ? (
       <div className="absolute top-3 left-3 bg-[#1f6feb]/10 border border-[#388bfd]/30 text-[#2f81f7] text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm backdrop-blur-sm">
         ⚡ Official
@@ -49,7 +86,9 @@ const BlueprintCard = React.memo<BlueprintCardProps>(({ id, username, repo, titl
     </div>
     <div className="p-4 flex flex-col flex-1">
       <div className="text-xs text-fg-muted font-mono mb-1 truncate w-full max-w-full">{username}/{repo}</div>
-      <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-1 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>      {description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{description}</p>}            <div className="text-xs text-fg-muted mb-4 mt-auto">
+      <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-1 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>
+      {description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{description}</p>}
+      <div className="text-xs text-fg-muted mb-4 mt-auto">
         {nodesCount} Nodes
       </div>
       
@@ -102,9 +141,10 @@ interface CatalogPageProps {
 }
 
 export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: CatalogPageProps) {
+  const PAGE_SIZE = 20;
   const { 
     searchQuery, setSearchQuery, 
-        selectedCategoryType, toggleCategoryType,
+    selectedCategoryType, toggleCategoryType,
     selectedIndustry, toggleIndustry,
     selectedDomain, toggleDomain,
     priceFilter, setPriceFilter, 
@@ -119,9 +159,10 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [skeletonsCount, setSkeletonsCount] = useState(PAGE_SIZE);
   const observer = useRef<IntersectionObserver | null>(null);
-
-  
+  const activeStreamIdRef = useRef(0);
 
   const [categoryTypes, setCategoryTypes] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Categories' }]);
   const [industries, setIndustries] = useState<{name: string, label: string}[]>([{ name: 'all', label: 'All Industries' }]);
@@ -129,8 +170,22 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
 
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
+  useEffect(() => {
+     activeStreamIdRef.current += 1;
+     setPage(1);
+     setBlueprints([]);
+     setIsLoading(true);
+     setHasMore(true);
+     setSkeletonsCount(PAGE_SIZE);
+  }, [debouncedSearch]);
+
   useEffect(() => {
     const fetchTaxonomy = async () => {
       try {
@@ -150,35 +205,82 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   }, []);
 
   useEffect(() => {
+    let isCancelled = false;
+    const streamId = ++activeStreamIdRef.current;
+
     const fetchBlueprintsPage = async () => {
-      if (page === 1) setIsLoading(true);
-      else setIsLoadingMore(true);
-      
+      const isFirstPage = page === 1;
+      if (isFirstPage) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      setIsStreaming(true);
+      setSkeletonsCount(PAGE_SIZE);
+
       try {
-        const bps = await api.getBlueprints(page, 50);
-        if (bps.length < 50) {
+        let fetchedItems: Blueprint[] = [];
+        const isSearch = Boolean(debouncedSearch && debouncedSearch.trim().length > 0);
+
+        if (isSearch) {
+          if (isFirstPage) {
+            fetchedItems = await api.searchBlueprints(debouncedSearch.trim());
+          }
           setHasMore(false);
-        }
-        if (page === 1) {
-          setBlueprints(bps);
         } else {
+          fetchedItems = await api.getBlueprints(page, PAGE_SIZE);
+          setHasMore(fetchedItems.length >= PAGE_SIZE);
+        }
+
+        if (isCancelled || activeStreamIdRef.current !== streamId) return;
+
+        if (fetchedItems.length === 0) {
+          setSkeletonsCount(0);
+          setIsLoading(false);
+          setIsLoadingMore(false);
+          setIsStreaming(false);
+          return;
+        }
+
+        // Adjust skeleton placeholders to match the incoming items if less than PAGE_SIZE
+        const targetCount = fetchedItems.length;
+        setSkeletonsCount(targetCount);
+
+        // Progressively stream/display each roadmap one by one!
+        for (let i = 0; i < targetCount; i++) {
+          if (isCancelled || activeStreamIdRef.current !== streamId) return;
+
+          const bp = fetchedItems[i];
           setBlueprints(prev => {
-            const newBps = [...prev];
-            bps.forEach(bp => {
-               if (!newBps.find(b => b.id === bp.id)) newBps.push(bp);
-            });
-            return newBps;
+            if (prev.some(b => b.id === bp.id)) return prev;
+            return [...prev, bp];
           });
+          
+          setSkeletonsCount(prev => Math.max(0, prev - 1));
+
+          if (i < targetCount - 1) {
+            await new Promise(resolve => setTimeout(resolve, 60));
+          }
         }
       } catch (error) {
         console.error('Failed to fetch blueprints', error);
+        setSkeletonsCount(0);
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (!isCancelled && activeStreamIdRef.current === streamId) {
+          setSkeletonsCount(0);
+          setIsLoading(false);
+          setIsLoadingMore(false);
+          setIsStreaming(false);
+        }
       }
     };
+
     fetchBlueprintsPage();
-  }, [page]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [page, debouncedSearch]);
 
   
 
@@ -224,22 +326,15 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
 
 
   const lastBlueprintElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoading || isLoadingMore) return;
+    if (isLoading || isLoadingMore || isStreaming || !hasMore) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0]?.isIntersecting && hasMore && !isLoading && !isLoadingMore && !isStreaming) {
         setPage(prev => prev + 1);
       }
-    });
+    }, { rootMargin: '200px' });
     if (node) observer.current.observe(node);
-  }, [isLoading, isLoadingMore, hasMore]);
-
-  // Auto-fetch more if filters hide too many items
-  useEffect(() => {
-    if (!isLoading && !isLoadingMore && hasMore && filteredBlueprints.length < 12) {
-      setPage(prev => prev + 1);
-    }
-  }, [isLoading, isLoadingMore, hasMore, filteredBlueprints.length]);
+  }, [isLoading, isLoadingMore, isStreaming, hasMore]);
 
   const sortOptions = [
     { id: 'popular', label: 'Most Recent' },
@@ -485,11 +580,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
 
         {/* Results Grid */}
         <div className="p-6">
-          {isLoading ? (
-             <div className="flex justify-center items-center py-12">
-               <img src="/loader.svg" alt="Loading"  className="w-8 h-8 animate-spin text-action-accent object-contain"  />
-             </div>
-          ) : filteredBlueprints.length === 0 && !hasMore ? (
+          {filteredBlueprints.length === 0 && skeletonsCount === 0 && !isLoading && !isLoadingMore && !isStreaming && !hasMore ? (
             <div className="bg-canvas-surface border border-border-default rounded-lg p-12 max-w-md mx-auto text-center mt-12">
                <Sparkles className="w-10 h-10 text-action-accent mx-auto mb-4 opacity-80" />
                <h3 className="text-lg font-semibold text-fg-default mb-2 tracking-tight">No blueprints found matching your criteria</h3>
@@ -506,33 +597,34 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                </button>
             </div>
           ) : (
-            
             <div className="flex flex-col gap-10 w-full pb-20 md:pb-6">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6 w-full">
-              {filteredBlueprints.map((bp: any) => (
-                <BlueprintCard 
-                  key={bp.id}
-                  id={bp.id}
-                  username={bp.creator?.name?.replace('@', '') || 'unknown'}
-                  repo={bp.slug}
-                  title={bp.title}
-                  description={bp.description}
-                  nodesCount={bp.nodesCount}
-                  price={bp.price}
-                  originType={bp.source}
-                  onCardClick={handleCardClick}
-                  isBookmarked={savedBlueprintIds.includes(bp.id)}
-                  onBookmarkClick={handleBookmarkClick}
-                />
-              ))}
-              {hasMore && (
-                <div ref={lastBlueprintElementRef} className="col-span-full py-8 flex justify-center items-center">
-                   <img src="/loader.svg" alt="Loading"  className="w-6 h-6 animate-spin text-action-accent opacity-50 object-contain"  />
-                </div>
-              )}
-            </div>
-            </div>
+                {filteredBlueprints.map((bp: any) => (
+                  <BlueprintCard 
+                    key={bp.id}
+                    id={bp.id}
+                    username={bp.creator?.name?.replace('@', '') || 'unknown'}
+                    repo={bp.slug}
+                    title={bp.title}
+                    description={bp.description}
+                    nodesCount={bp.nodesCount}
+                    price={bp.price}
+                    originType={bp.source}
+                    onCardClick={handleCardClick}
+                    isBookmarked={savedBlueprintIds.includes(bp.id)}
+                    onBookmarkClick={handleBookmarkClick}
+                  />
+                ))}
 
+                {Array.from({ length: skeletonsCount }).map((_, idx) => (
+                  <BlueprintSkeletonCard key={`skeleton-${idx}`} />
+                ))}
+
+                {hasMore && !isLoading && !isLoadingMore && !isStreaming && (
+                  <div ref={lastBlueprintElementRef} className="col-span-full h-8 flex items-center justify-center opacity-0 pointer-events-none" />
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>

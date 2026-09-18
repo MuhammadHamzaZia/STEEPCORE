@@ -2,7 +2,34 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 
+
+const withRetry = async (operation: () => Promise<any>, maxRetries = 5, baseDelay = 1500) => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (e: any) {
+      attempt++;
+      const errMsg = String(e.message || e);
+      const isQuotaError = errMsg.toLowerCase().includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED');
+      
+      // Only retry if it's a 503/High Demand, NEVER retry a Quota Limit
+      const isRetryable = !isQuotaError && (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429'));
+      
+      if (!isRetryable || attempt >= maxRetries) {
+        throw e;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      console.warn(`[Retry] AI API returned busy/503, retrying in ${delay}ms... (Attempt ${attempt} of ${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Maximum retries reached");
+};
+
 async function startServer() {
+
   const app = express();
   const PORT = 3000;
 
@@ -10,7 +37,7 @@ async function startServer() {
   app.use(express.json());
 
   // API routes FIRST
-  app.post("/api/Ai/generate", async (req, res) => {
+  app.post(["/api/Ai/generate", "/api/ai/generate"], async (req, res) => {
     try {
       const { GoogleGenAI, Type } = await import("@google/genai");
       if (!process.env.GEMINI_API_KEY) {
@@ -22,7 +49,7 @@ async function startServer() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const prompt = req.body.prompt;
       
-      const response = await ai.models.generateContent({
+      const response = await withRetry(() => ai.models.generateContent({
         model: "gemini-3.6-flash",
         contents: prompt,
         config: {
@@ -60,7 +87,7 @@ async function startServer() {
           },
           systemInstruction: "You are an AI specialized in building highly detailed learning and system architecture roadmaps. Given a topic, generate a comprehensive roadmap containing an array of 'nodes' (steps/topics) and 'edges' (connections). Produce exactly 8-12 nodes for a topic, mapping the learning progression logically.",
         }
-      });
+      }));
       
       if (!response.text) {
         throw new Error("Empty response from AI");
@@ -82,10 +109,14 @@ async function startServer() {
         }
       } catch(err) {}
       
-      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
+      if (errMsg.toLowerCase().includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        errMsg = "You have exhausted your free daily AI generation quota (20 requests/day). Please try again tomorrow or configure a paid API key.";
+        console.warn("AI API Quota Exceeded:", errMsg);
+        res.status(429).json({ error: errMsg });
+      } else if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
-        console.warn("AI API limit/busy (503/429):", errMsg, e);
-        res.status(503).json({ error: errMsg });
+        console.warn("AI API limit/busy (503/429):", errMsg);
+        res.status(429).json({ error: errMsg });
       } else {
         console.error("AI Error:", e);
         res.status(500).json({ error: errMsg });
@@ -94,9 +125,9 @@ async function startServer() {
   });
 
   
-  app.post("/api/ai/Chat", async (req, res) => {
+  app.post(["/api/Ai/Chat", "/api/ai/Chat"], async (req, res) => {
     try {
-      const { GoogleGenAI, Type, FunctionDeclaration } = await import("@google/genai");
+      const { GoogleGenAI, Type } = await import("@google/genai");
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const { messages, context } = req.body;
       
@@ -178,12 +209,14 @@ Make sure your text response is friendly, helpful, and concise.`;
         parts: [{ text: m.content }]
       }));
 
-      const response = await ai.models.generateContent({
+      const response = await withRetry(() => ai.models.generateContent({
         model: "gemini-3.6-flash",
         contents: formattedMessages,
-        tools: [{ functionDeclarations: [tool_addNode, tool_addMultipleNodes, tool_updateNode, tool_deleteNode] }],
-        config: { systemInstruction }
-      });
+        config: {
+          systemInstruction,
+          tools: [{ functionDeclarations: [tool_addNode, tool_addMultipleNodes, tool_updateNode, tool_deleteNode] }]
+        }
+      }));
 
       const functionCalls = response.functionCalls || [];
       const text = response.text || "Sure, I've updated the roadmap for you.";
@@ -215,10 +248,14 @@ Make sure your text response is friendly, helpful, and concise.`;
         }
       } catch(err) {}
       
-      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
+      if (errMsg.toLowerCase().includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        errMsg = "You have exhausted your free daily AI generation quota (20 requests/day). Please try again tomorrow or configure a paid API key.";
+        console.warn("AI API Quota Exceeded:", errMsg);
+        res.status(429).json({ error: errMsg });
+      } else if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
-        console.warn("AI Chat API limit/busy (503/429):", errMsg, e);
-        res.status(503).json({ error: errMsg });
+        console.warn("AI API limit/busy (503/429):", errMsg);
+        res.status(429).json({ error: errMsg });
       } else {
         console.error("AI Chat Error:", e);
         res.status(500).json({ error: errMsg });
@@ -243,6 +280,16 @@ Make sure your text response is friendly, helpful, and concise.`;
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
+    
+    // Keep Render backend awake with periodic health pings (every 10 minutes)
+    const RENDER_HEALTH_URL = "https://steepcoreapi.onrender.com/health";
+    const pingBackend = () => {
+      fetch(RENDER_HEALTH_URL)
+        .then(res => console.log(`[KeepAlive] Render backend ping status: ${res.status}`))
+        .catch(err => console.warn(`[KeepAlive] Render ping failed:`, err.message));
+    };
+    pingBackend();
+    setInterval(pingBackend, 10 * 60 * 1000);
   });
 }
 

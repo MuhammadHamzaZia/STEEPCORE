@@ -390,13 +390,17 @@ const openSaveModal = () => {
             }
           } else if (action.type === 'UPDATE_NODE') {
             currentNodes = currentNodes.map(n => {
-              if (n.id === action.nodeId || n.data.label.toLowerCase() === action.nodeId.toLowerCase()) {
+              const nodeLabel = String((n.data as any)?.label || '');
+              if (n.id === action.nodeId || nodeLabel.toLowerCase() === String(action.nodeId).toLowerCase()) {
                 return { ...n, data: { ...n.data, ...action.updates } };
               }
               return n;
             });
           } else if (action.type === 'DELETE_NODE') {
-            currentNodes = currentNodes.filter(n => n.id !== action.nodeId && n.data.label.toLowerCase() !== action.nodeId.toLowerCase());
+            currentNodes = currentNodes.filter(n => {
+              const nodeLabel = String((n.data as any)?.label || '');
+              return n.id !== action.nodeId && nodeLabel.toLowerCase() !== String(action.nodeId).toLowerCase();
+            });
             currentEdges = currentEdges.filter(e => e.source !== action.nodeId && e.target !== action.nodeId);
           }
         });

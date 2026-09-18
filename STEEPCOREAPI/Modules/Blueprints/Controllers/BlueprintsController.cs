@@ -7,6 +7,7 @@ using STEEPCOREAPI.Shared.Interfaces;
 using STEEPCOREAPI.Shared.Models;
 using STEEPCOREAPI.Shared.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace STEEPCOREAPI.Modules.Blueprints.Controllers;
 
@@ -18,12 +19,18 @@ public class BlueprintsController : ControllerBase
     private readonly IBlueprintService _service;
     private readonly ILogger<BlueprintsController> _logger;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IMemoryCache _cache;
 
-    public BlueprintsController(IBlueprintService service, ILogger<BlueprintsController> logger, ApplicationDbContext dbContext)
+    public BlueprintsController(
+        IBlueprintService service,
+        ILogger<BlueprintsController> logger,
+        ApplicationDbContext dbContext,
+        IMemoryCache cache)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
     [HttpGet("{id:guid}")]
@@ -201,18 +208,43 @@ public class BlueprintsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<List<BlueprintResponseDto>>> GetTrendingBlueprints([FromQuery] int limit = 3, CancellationToken cancellationToken = default)
     {
+        var safeLimit = Math.Max(1, Math.Min(limit, 20));
+        var cacheKey = $"trending_{safeLimit}";
+        if (_cache.TryGetValue(cacheKey, out List<BlueprintResponseDto>? cached) && cached != null)
+        {
+            return Ok(cached);
+        }
+
         try
         {
-            var blueprints = await _dbContext.Blueprints
-                .Include(b => b.Nodes)
-                .Include(b => b.Edges)
+            var response = await _dbContext.Blueprints
+                .AsNoTracking()
                 .Where(b => b.IsPublished)
                 .OrderByDescending(b => b.PurchaseCount)
                 .ThenByDescending(b => b.ViewCount)
-                .Take(Math.Max(1, Math.Min(limit, 20)))
+                .Take(safeLimit)
+                .Select(b => new BlueprintResponseDto
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    Description = b.Description,
+                    Domain = b.Domain,
+                    Price = b.Price,
+                    IsPublished = b.IsPublished,
+                    CreatedByUserId = b.CreatedByUserId ?? string.Empty,
+                    CreatorName = b.CreatedByUser != null ? b.CreatedByUser.FullName : "Unknown",
+                    ViewCount = b.ViewCount,
+                    PurchaseCount = b.PurchaseCount,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt,
+                    NodesCount = b.Nodes.Count(),
+                    Nodes = new List<NodeResponseDto>(),
+                    Edges = new List<EdgeResponseDto>()
+                })
                 .ToListAsync(cancellationToken);
                 
-            return Ok(blueprints.Select(MapToResponse).ToList());
+            _cache.Set(cacheKey, response, TimeSpan.FromMinutes(5));
+            return Ok(response);
         }
         catch (Exception ex)
         {
@@ -225,9 +257,15 @@ public class BlueprintsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<List<string>>> GetQuickSuggestions(CancellationToken cancellationToken = default)
     {
+        if (_cache.TryGetValue("quick_suggestions", out List<string>? cached) && cached != null)
+        {
+            return Ok(cached);
+        }
+
         try
         {
             var suggestions = await _dbContext.Blueprints
+                .AsNoTracking()
                 .Where(b => b.IsPublished && !string.IsNullOrEmpty(b.Domain))
                 .GroupBy(b => b.Domain)
                 .OrderByDescending(g => g.Count())
@@ -238,6 +276,7 @@ public class BlueprintsController : ControllerBase
             if (suggestions.Count == 0)
                 suggestions = new List<string> { "Microservices", "RAG Pipeline", "PostgreSQL", "FastAPI", "Kubernetes", "GraphQL" };
                 
+            _cache.Set("quick_suggestions", suggestions, TimeSpan.FromMinutes(15));
             return Ok(suggestions);
         }
         catch
@@ -250,14 +289,21 @@ public class BlueprintsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<Dictionary<string, int>>> GetDomainCounts(CancellationToken cancellationToken = default)
     {
+        if (_cache.TryGetValue("domain_counts", out Dictionary<string, int>? cached) && cached != null)
+        {
+            return Ok(cached);
+        }
+
         try
         {
             var counts = await _dbContext.Blueprints
+                .AsNoTracking()
                 .Where(b => b.IsPublished && !string.IsNullOrEmpty(b.Domain))
                 .GroupBy(b => b.Domain)
                 .Select(g => new { Domain = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(k => k.Domain, v => v.Count, cancellationToken);
                 
+            _cache.Set("domain_counts", counts, TimeSpan.FromMinutes(15));
             return Ok(counts);
         }
         catch
@@ -276,10 +322,41 @@ public class BlueprintsController : ControllerBase
         if (pageSize < 1 || pageSize > 50)
             return BadRequest(new { message = "Invalid page size" });
 
+        var cacheKey = $"published_{pageNumber}_{pageSize}";
+        if (_cache.TryGetValue(cacheKey, out List<BlueprintResponseDto>? cached) && cached != null)
+        {
+            return Ok(cached);
+        }
+
         try
         {
-            var blueprints = await _service.GetAllPublishedAsync(pageNumber, Math.Min(pageSize, 50), cancellationToken);
-            var response = blueprints.Select(MapToResponse).ToList();
+            var response = await _dbContext.Blueprints
+                .AsNoTracking()
+                .Where(b => b.IsPublished)
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(b => new BlueprintResponseDto
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    Description = b.Description,
+                    Domain = b.Domain,
+                    Price = b.Price,
+                    IsPublished = b.IsPublished,
+                    CreatedByUserId = b.CreatedByUserId ?? string.Empty,
+                    CreatorName = b.CreatedByUser != null ? b.CreatedByUser.FullName : "Unknown",
+                    ViewCount = b.ViewCount,
+                    PurchaseCount = b.PurchaseCount,
+                    CreatedAt = b.CreatedAt,
+                    UpdatedAt = b.UpdatedAt,
+                    NodesCount = b.Nodes.Count(),
+                    Nodes = new List<NodeResponseDto>(),
+                    Edges = new List<EdgeResponseDto>()
+                })
+                .ToListAsync(cancellationToken);
+
+            _cache.Set(cacheKey, response, TimeSpan.FromMinutes(5));
             return Ok(response);
         }
         catch (Exception ex)
@@ -372,6 +449,7 @@ public class BlueprintsController : ControllerBase
         PurchaseCount = bp.PurchaseCount,
         CreatedAt = bp.CreatedAt,
         UpdatedAt = bp.UpdatedAt,
+        NodesCount = bp.Nodes?.Count ?? 0,
         Nodes = bp.Nodes?.Select(n => new NodeResponseDto
         {
             Id = n.Id,

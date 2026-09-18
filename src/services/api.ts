@@ -186,14 +186,14 @@ export const api = {
   },
 
   // Blueprints
-  async getBlueprints(page: number = 1, pageSize: number = 12, domainFilter?: string): Promise<Blueprint[]> {
+  async getBlueprints(page: number = 1, pageSize: number = 20, domainFilter?: string): Promise<Blueprint[]> {
     try {
       const data = await apiClient.get<any[]>(`/api/Blueprints/published?pageNumber=${page}&pageSize=${pageSize}`);
       if (Array.isArray(data)) {
         let formatted = data.map(item => ({
           ...item,
           id: String(item.id),
-          nodesCount: item.nodes?.length || 0,
+          nodesCount: (item.nodesCount !== undefined && item.nodesCount !== null) ? item.nodesCount : (item.nodes?.length || 0),
           creator: { name: item.creatorName || 'STEEPCORE' }
         })).map(bp => ({
           ...bp,
@@ -212,10 +212,16 @@ export const api = {
   async getTrendingBlueprints(limit: number = 3): Promise<Blueprint[]> {
     try {
       const data = await apiClient.get<any[]>(`/api/Blueprints/trending?limit=${limit}`);
-      return data.map(bp => ({
-        ...bp,
-        price: (bp.creatorName === 'STEEPCORE' || bp.creatorName === 'System' || bp.creatorName === 'Unknown' || !bp.creatorName) ? 0 : bp.price
-      }));
+      if (Array.isArray(data)) {
+        return data.map(bp => ({
+          ...bp,
+          id: String(bp.id),
+          nodesCount: (bp.nodesCount !== undefined && bp.nodesCount !== null) ? bp.nodesCount : (bp.nodes?.length || 0),
+          creator: { name: bp.creatorName || 'STEEPCORE' },
+          price: (bp.creatorName === 'STEEPCORE' || bp.creatorName === 'System' || bp.creatorName === 'Unknown' || !bp.creatorName) ? 0 : bp.price
+        }));
+      }
+      return [];
     } catch (e) {
       return [];
     }

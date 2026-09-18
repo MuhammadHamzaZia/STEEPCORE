@@ -1,63 +1,71 @@
 const fs = require('fs');
 let code = fs.readFileSync('server.ts', 'utf8');
 
-const target1 = `      if (isQuota) {
-        console.log("[API Quota] " + error.message);
-      } else {
-        console.error(error);
+const retryLogic = `
+const withRetry = async (operation: () => Promise<any>, maxRetries = 5, baseDelay = 1500) => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (e: any) {
+      attempt++;
+      const errMsg = e.message || String(e);
+      const isRetryable = errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429');
+      
+      if (!isRetryable || attempt >= maxRetries) {
+        throw e;
       }
       
-      let errorMessage = "Failed to generate roadmap: " + error.message;
-      if (isQuota) { 
-         errorMessage = "Gemini API rate limit or quota exceeded. Please try searching for a common role (e.g., 'Software Engineer', 'Data Scientist', 'Backend', 'Frontend') which are pre-generated, or check your API key billing.";
-      }
-      res.status(500).json({ error: errorMessage });`;
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      console.warn(\`[Retry] AI API returned busy/503/429, retrying in \${delay}ms... (Attempt \${attempt} of \${maxRetries})\`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Maximum retries reached");
+};
 
-const replacement1 = `      if (isQuota) {
-        console.log("[API Quota] " + error.message);
-        return res.json({
-          role: role || "Learning Path",
-          phases: [
-            {
-              title: "API Quota Exceeded",
-              description: "The AI generation quota has been exceeded. Showing placeholder data.",
-              topics: [
-                {
-                  name: "Quota Limits",
-                  concepts: ["Check API Key", "Review Billing", "Use Pre-cached Roadmaps (e.g. 'Software Engineer')"]
-                }
-              ]
-            }
-          ]
-        });
-      }
-      console.error(error);
-      res.status(500).json({ error: "Failed to generate roadmap: " + error.message });`;
+async function startServer() {
+`;
 
-const target2 = `      if (isQuota) {
-        console.log("[API Quota] " + error.message);
-      } else {
-        console.error(error);
-      }
-      
-      let errorMessage = "Failed to expand node: " + error.message;
-      if (isQuota) { 
-         errorMessage = "Gemini API rate limit or quota exceeded. Node expansion requires AI generation. Please check your API key billing.";
-      }
-      res.status(500).json({ error: errorMessage });`;
+code = code.replace('async function startServer() {', retryLogic);
 
-const replacement2 = `      if (isQuota) {
-        console.log("[API Quota] " + error.message);
-        return res.json({
-          newNodes: [
-            { name: "API Quota Exceeded", type: "concept" },
-            { name: "Please check your plan or retry later", type: "concept" }
-          ]
-        });
-      }
-      console.error(error);
-      res.status(500).json({ error: "Failed to expand node: " + error.message });`;
+// Call 1
+code = code.replace(
+  `const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,`,
+  `const response = await withRetry(() => ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,`
+);
 
-code = code.replace(target1, replacement1);
-code = code.replace(target2, replacement2);
+code = code.replace(
+  `          systemInstruction: "You are an AI specialized in building highly detailed learning and system architecture roadmaps. Given a topic, generate a comprehensive roadmap containing an array of 'nodes' (steps/topics) and 'edges' (connections). Produce exactly 8-12 nodes for a topic, mapping the learning progression logically.",
+        }
+      });`,
+  `          systemInstruction: "You are an AI specialized in building highly detailed learning and system architecture roadmaps. Given a topic, generate a comprehensive roadmap containing an array of 'nodes' (steps/topics) and 'edges' (connections). Produce exactly 8-12 nodes for a topic, mapping the learning progression logically.",
+        }
+      }));`
+);
+
+// Call 2
+code = code.replace(
+  `const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: formattedMessages,`,
+  `const response = await withRetry(() => ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: formattedMessages,`
+);
+
+code = code.replace(
+  `        tools: [{ functionDeclarations: [tool_addNode, tool_addMultipleNodes, tool_updateNode, tool_deleteNode] }],
+        config: { systemInstruction }
+      });`,
+  `        tools: [{ functionDeclarations: [tool_addNode, tool_addMultipleNodes, tool_updateNode, tool_deleteNode] }],
+        config: { systemInstruction }
+      }));`
+);
+
+
 fs.writeFileSync('server.ts', code);

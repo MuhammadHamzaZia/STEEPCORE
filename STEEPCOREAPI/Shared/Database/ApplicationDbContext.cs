@@ -102,6 +102,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(e => e.Domain);
             entity.HasIndex(e => e.CreatedByUserId);
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.IsPublished, e.CreatedAt });
+            entity.HasIndex(e => new { e.IsPublished, e.Domain });
+            entity.HasIndex(e => new { e.IsPublished, e.PurchaseCount, e.ViewCount });
         });
 
         // Configure FlowchartNode entity

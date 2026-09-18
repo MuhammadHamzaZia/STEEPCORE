@@ -170,6 +170,7 @@ builder.Services.AddHttpClient<StripePaymentService>(client =>
 #endregion
 
 #region API Configuration
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -301,6 +302,15 @@ app.MapGet("/health", () => Results.Ok(new
     environment = app.Environment.EnvironmentName
 }))
 .WithName("Health")
+.AllowAnonymous();
+
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow,
+    environment = app.Environment.EnvironmentName
+}))
+.WithName("ApiHealth")
 .AllowAnonymous();
 
 app.MapGet("/health/ready", async (HttpContext context, ILoggerFactory loggerFactory) =>

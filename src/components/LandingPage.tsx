@@ -58,6 +58,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
       }
     };
     fetchData();
+
+    // Idle prefetch catalog page 1 so clicking Catalog renders with 0ms delay
+    const prefetchTimer = setTimeout(() => {
+      api.getBlueprints(1, 20).catch(() => {});
+    }, 800);
+
+    return () => clearTimeout(prefetchTimer);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -247,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {trendingBlueprints.map(bp => (
-              <div key={bp.id} onClick={() => { setSelectedBlueprintId(bp.id); if (onNavigateToProduct) onNavigateToProduct(); }} className="bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer">
+              <div key={bp.id} onClick={() => { setSelectedBlueprintId(bp.id); if (onNavigateToProduct) onNavigateToProduct(); }} onMouseEnter={() => { api.getBlueprintById(bp.id).catch(()=>{}) }} className="bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-colors flex flex-col group cursor-pointer">
                 <div className="h-32 bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-4">
                   <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
                   <GitMerge size={48} className="text-fg-muted opacity-20" />

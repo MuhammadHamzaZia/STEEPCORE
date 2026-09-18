@@ -14,6 +14,7 @@ public class BlueprintDto
     public int PurchaseCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int NodesCount { get; set; }
     public List<NodeResponseDto> Nodes { get; set; } = new();
     public List<EdgeResponseDto> Edges { get; set; } = new();
 }
@@ -52,6 +53,7 @@ public class BlueprintResponseDto
     public int PurchaseCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int NodesCount { get; set; }
     public List<NodeResponseDto> Nodes { get; set; } = new();
     public List<EdgeResponseDto> Edges { get; set; } = new();
 }
