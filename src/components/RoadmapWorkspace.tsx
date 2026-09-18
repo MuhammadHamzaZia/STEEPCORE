@@ -19,7 +19,8 @@ import '@xyflow/react/dist/style.css';
 import {
   AlertCircle, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
   LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, Menu, 
-  Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon
+  Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon,
+  Lock
 } from 'lucide-react';
 import { EditableNode, cn } from './EditableNode';
 import { getLayoutedElements } from '../lib/flow';
@@ -217,6 +218,19 @@ const openSaveModal = () => {
       loadBlueprint(initialBlueprintId);
     }
   }, [initialRole, initialBlueprintId]);
+
+  // Immediately remove completed node indicators if user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setNodes(nds => nds.map(n => ({
+        ...n,
+        data: {
+          ...n.data,
+          isCompleted: false
+        }
+      })));
+    }
+  }, [isAuthenticated]);
 
   const loadBlueprint = async (id: string) => {
     setIsLoading(true);
@@ -667,29 +681,43 @@ const openSaveModal = () => {
 
               
               
-              {currentBlueprintId && activeRoadmaps[currentBlueprintId] && (
+              {currentBlueprintId && (
                 <div className="pt-4 border-t border-border-default">
-                  <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-canvas-inset rounded-md transition-colors">
-                    <input 
-                      type="checkbox" 
-                      className="rounded border-border-default text-action-primary focus:ring-action-primary"
-                      checked={activeRoadmaps[currentBlueprintId]?.completedNodes?.includes(selectedNode.id) || false}
-                      onChange={async (e) => {
-                        const isChecked = e.target.checked;
-                        markNodeCompleted(currentBlueprintId, selectedNode.id, nodes.length);
-                        if (isAuthenticated) {
+                  {isAuthenticated ? (
+                    <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-canvas-inset rounded-md transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-border-default text-action-primary focus:ring-action-primary"
+                        checked={activeRoadmaps[currentBlueprintId]?.completedNodes?.includes(selectedNode.id) || false}
+                        onChange={async (e) => {
+                          const isChecked = e.target.checked;
+                          markNodeCompleted(currentBlueprintId, selectedNode.id, nodes.length);
+                          setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, data: { ...n.data, isCompleted: isChecked } } : n));
                           try {
                             await api.toggleNodeProgress(currentBlueprintId, selectedNode.id, isChecked ? 'completed' : 'pending');
                           } catch(err) {
-                            // Backend sync failed, but local zustand persistence succeeded. Ignore to prevent UI console errors.
+                            console.error("Progress sync error", err);
                           }
-                        }
-                        
-                        
-                      }}
-                    />
-                    <span className="text-sm font-medium text-fg-default">Mark as Completed</span>
-                  </label>
+                        }}
+                      />
+                      <span className="text-sm font-medium text-fg-default">Mark as Completed</span>
+                    </label>
+                  ) : (
+                    <div className="p-3 bg-canvas-inset border border-border-default rounded-md text-xs text-fg-muted space-y-2">
+                      <div className="flex items-center gap-1.5 text-fg-default font-medium">
+                        <Lock size={13} className="text-action-accent" />
+                        <span>Checkpoint Tracking</span>
+                      </div>
+                      <p>Sign in to your account to save checkpoint progress and sync with the database.</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsAuthModalOpen(true)}
+                        className="w-full py-1.5 bg-action-primary hover:bg-action-primary-hover text-white rounded text-xs font-medium transition-colors"
+                      >
+                        Sign In to Track
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               

@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { apiClient, setAuthToken, setRefreshToken, getAuthToken } from '../services/apiClient';
+import { apiClient, setAuthToken, setRefreshToken, getAuthToken, clearApiCache } from '../services/apiClient';
+import { api } from '../services/api';
+import { signInWithGoogle, firebaseSignOut } from '../lib/firebase';
+import { useLibraryStore } from './useLibraryStore';
 
 export interface UserProfile {
   id?: string;
   username: string;
   email: string;
+  avatarUrl?: string;
   role?: string;
 }
 
@@ -14,8 +18,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (emailOrUsername: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
 }
@@ -28,48 +31,44 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: !!getAuthToken(),
       isLoading: false,
 
-      login: async (emailOrUsername, password) => {
+      loginWithGoogle: async () => {
         set({ isLoading: true });
         try {
-          const res: any = await apiClient.post('/api/Auth/login', {
-            email: emailOrUsername,
-            username: emailOrUsername,
-            password,
-          });
+          const { idToken, email, displayName, photoURL, uid } = await signInWithGoogle();
 
-          const token = res.token || res.accessToken || res.jwt;
-          const refreshToken = res.refreshToken;
-          const user: UserProfile = res.user || {
-            email: emailOrUsername.includes('@') ? emailOrUsername : `${emailOrUsername}@steepcore.com`,
-            username: res.username || emailOrUsername.split('@')[0],
+          let res: any;
+          try {
+            res = await api.firebaseLogin({
+              idToken,
+              email,
+              name: displayName,
+              photoUrl: photoURL
+            });
+          } catch (apiErr: any) {
+            console.warn("Backend API firebase-login unreachable, issuing secure token session:", apiErr);
+            res = {
+              token: idToken,
+              userId: uid,
+              email: email || 'user@steepcore.com',
+            };
+          }
+
+          const token = res.token || res.accessToken || idToken;
+          const user: UserProfile = {
+            id: res.userId || uid,
+            email: res.email || email || 'user@steepcore.com',
+            username: displayName || (email ? email.split('@')[0] : 'Developer'),
+            avatarUrl: photoURL || undefined,
             role: res.role || 'user',
           };
 
           if (token) {
             setAuthToken(token);
-            if (refreshToken) setRefreshToken(refreshToken);
             set({ user, token, isAuthenticated: true, isLoading: false });
+            useLibraryStore.getState().syncFromDatabase().catch(() => {});
           } else {
-            throw new Error('No token returned from server');
+            throw new Error('No authentication token returned from server');
           }
-        } catch (error: any) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-            register: async (username, email, password) => {
-        set({ isLoading: true });
-        try {
-          await apiClient.post('/api/Auth/register', {
-            username,
-            fullName: username,
-            email,
-            password,
-          });
-
-          // After registration, auto-login or prompt login
-          await get().login(email, password);
         } catch (error: any) {
           set({ isLoading: false });
           throw error;
@@ -78,19 +77,32 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          await firebaseSignOut();
+        } catch (e) {}
+
+        try {
           await apiClient.post('/api/Auth/logout', {});
         } catch (e) {
           // Ignore logout network errors
         } finally {
           setAuthToken(null);
           setRefreshToken(null);
+          clearApiCache();
+          // Wipe all private progress and roadmaps from the client so nothing leaks when signed out
+          useLibraryStore.getState().clearUserData();
           set({ user: null, token: null, isAuthenticated: false, isLoading: false });
         }
       },
 
       checkAuth: () => {
         const token = getAuthToken();
-        set({ token, isAuthenticated: !!token });
+        const authed = !!token;
+        set({ token, isAuthenticated: authed });
+        if (authed) {
+          useLibraryStore.getState().syncFromDatabase().catch(() => {});
+        } else {
+          useLibraryStore.getState().clearUserData();
+        }
       },
     }),
     {

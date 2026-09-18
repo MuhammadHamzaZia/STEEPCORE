@@ -1,7 +1,8 @@
 import React from 'react';
-import { Home, Compass, Sparkles, BookOpen, Bookmark, PenTool, Settings, Plus } from 'lucide-react';
+import { Home, Compass, Sparkles, BookOpen, Bookmark, PenTool, Settings, Plus, Lock } from 'lucide-react';
 import { useLibraryStore } from '../../store/useLibraryStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface SidebarProps {
   onNavigate: (page: 'landing' | 'catalog' | 'roadmap' | 'product' | 'editor' | 'dashboard') => void;
@@ -10,7 +11,11 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => {
   const { savedBlueprintIds, activeRoadmaps } = useLibraryStore();
-  const { selectedDomain, setSelectedDomain, setSelectedIndustry, setSelectedCategoryType } = useUIStore();
+  const { selectedDomain, setSelectedDomain, setSelectedIndustry, setSelectedCategoryType, setIsAuthModalOpen, setActiveTab } = useUIStore();
+  const { isAuthenticated } = useAuthStore();
+
+  const activeCount = isAuthenticated ? Object.keys(activeRoadmaps).length : 0;
+  const savedCount = isAuthenticated ? savedBlueprintIds.length : 0;
 
   const quickLinks = [
     { type: 'cat', id: 'Role-Based', label: 'Role-Based Paths' },
@@ -67,23 +72,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
 
         {/* Workspace */}
         <div className="mb-8">
-          <div className="px-3 text-xs font-semibold text-[#7d8590] mb-2 uppercase tracking-wider">My Workspace</div>
+          <div className="px-3 text-xs font-semibold text-[#7d8590] mb-2 uppercase tracking-wider flex items-center justify-between">
+            <span>My Workspace</span>
+            {!isAuthenticated && <Lock size={11} className="text-[#7d8590] opacity-60" />}
+          </div>
           <div className="space-y-1">
             <button 
-              onClick={() => onNavigate('dashboard')}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setActiveTab('roadmaps');
+                onNavigate('dashboard');
+              }}
               className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"
             >
               <div className="flex items-center gap-3">
                 <BookOpen size={16} />
                 Active Learning Paths
               </div>
-              {Object.keys(activeRoadmaps).length > 0 && (
-                <span className="bg-[#21262d] text-xs py-0.5 px-2 rounded-full">{Object.keys(activeRoadmaps).length}</span>
+              {isAuthenticated && activeCount > 0 && (
+                <span className="bg-[#21262d] text-xs py-0.5 px-2 rounded-full text-emerald-400 font-semibold">{activeCount}</span>
               )}
             </button>
             <button 
               onClick={() => {
-                onNavigate('catalog');
+                if (!isAuthenticated) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setActiveTab('saved');
+                onNavigate('dashboard');
               }}
               className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"
             >
@@ -91,11 +111,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
                 <Bookmark size={16} />
                 Saved Blueprints
               </div>
-              {savedBlueprintIds.length > 0 && (
-                <span className="bg-[#21262d] text-xs py-0.5 px-2 rounded-full">{savedBlueprintIds.length}</span>
+              {isAuthenticated && savedCount > 0 && (
+                <span className="bg-[#21262d] text-xs py-0.5 px-2 rounded-full text-blue-400 font-semibold">{savedCount}</span>
               )}
             </button>
-            <button onClick={() => { useUIStore.getState().setActiveTab('created'); onNavigate('dashboard'); }} className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"><div className="flex items-center gap-3"><PenTool size={16} />My Published Patterns
+            <button 
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setActiveTab('created');
+                onNavigate('dashboard');
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors text-[#7d8590] hover:bg-[#161b22] hover:text-[#e6edf3]"
+            >
+              <div className="flex items-center gap-3">
+                <PenTool size={16} />
+                My Published Patterns
               </div>
             </button>
           </div>

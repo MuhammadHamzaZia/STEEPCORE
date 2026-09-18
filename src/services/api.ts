@@ -343,7 +343,24 @@ export const api = {
       return [];
     }
   },
+  async getUserProgressSummary(): Promise<any[]> {
+    try {
+      return await apiClient.get<any[]>('/api/UserProgress/summary');
+    } catch {
+      return [];
+    }
+  },
   async toggleNodeProgress(blueprintId: string, nodeId: string, status: string): Promise<void> {
     await apiClient.post('/api/UserProgress/toggle', { blueprintId, nodeId, status });
+  },
+  async resetUserProgress(blueprintId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/UserProgress/${blueprintId}`);
+    } catch {}
+  },
+
+  // Auth & Identity
+  async firebaseLogin(payload: { idToken: string; email?: string | null; name?: string | null; photoUrl?: string | null }): Promise<any> {
+    return apiClient.post('/api/Auth/firebase-login', payload);
   }
 };

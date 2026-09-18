@@ -22,6 +22,7 @@ export const setAuthToken = (token: string | null) => {
     localStorage.setItem('steepcore_token', token);
   } else {
     localStorage.removeItem('steepcore_token');
+    clearApiCache();
   }
 };
 
@@ -226,8 +227,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       }
       
       if (isGet) {
-        requestCache.set(endpoint, { timestamp: Date.now(), data });
-        setStoredCache(endpoint, data);
+        const isUserPrivateEndpoint = endpoint.includes('/UserProgress') || endpoint.includes('/blueprints/me') || endpoint.includes('/Auth');
+        if (!isUserPrivateEndpoint) {
+          requestCache.set(endpoint, { timestamp: Date.now(), data });
+          setStoredCache(endpoint, data);
+        }
       }
 
       return data;

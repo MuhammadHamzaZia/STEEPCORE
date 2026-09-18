@@ -40,6 +40,53 @@ public class UserProgressController : ControllerBase
             
         return Ok(progress);
     }
+
+    [HttpGet("summary")]
+    public async Task<ActionResult<IEnumerable<object>>> GetSummary(CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        var progressList = await _dbContext.UserProgresses
+            .AsNoTracking()
+            .Where(up => up.UserId == userId && up.Status == "completed")
+            .Select(up => new {
+                blueprintId = up.BlueprintId,
+                nodeId = up.NodeId,
+                updatedAt = up.UpdatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var summary = progressList
+            .GroupBy(p => p.blueprintId)
+            .Select(g => new {
+                blueprintId = g.Key.ToString(),
+                completedNodes = g.Select(x => x.nodeId.ToString()).ToList(),
+                updatedAt = g.Max(x => x.updatedAt)
+            })
+            .ToList();
+
+        return Ok(summary);
+    }
+
+    [HttpDelete("{blueprintId:guid}")]
+    public async Task<ActionResult> ResetProgress(Guid blueprintId, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        var items = await _dbContext.UserProgresses
+            .Where(up => up.UserId == userId && up.BlueprintId == blueprintId)
+            .ToListAsync(cancellationToken);
+
+        if (items.Count > 0)
+        {
+            _dbContext.UserProgresses.RemoveRange(items);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return Ok(new { success = true, message = "Progress reset successfully." });
+    }
     
     [HttpPost("toggle")]
     public async Task<ActionResult> ToggleProgress([FromBody] ToggleProgressRequest req, CancellationToken cancellationToken)

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, ShieldCheck, Database, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
 interface AuthModalProps {
@@ -8,42 +8,31 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const { login, register, isLoading } = useAuthStore();
+  const { loginWithGoogle, isLoading } = useAuthStore();
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      if (mode === 'login') {
-        await login(email || username, password);
-        setSuccessMessage('Logged in successfully!');
-        setTimeout(() => {
-          onClose();
-        }, 800);
-      } else {
-        if (!username.trim()) {
-          setErrorMessage('Username is required for registration.');
-          return;
-        }
-        await register(username, email, password);
-        setSuccessMessage('Registered and logged in successfully!');
-        setTimeout(() => {
-          onClose();
-        }, 800);
-      }
+      await loginWithGoogle();
+      setSuccessMessage('Successfully signed in with Google! Syncing with database...');
+      setTimeout(() => {
+        onClose();
+      }, 1000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed. Please check your credentials.');
+      console.error("Google sign-in error:", err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setErrorMessage('Sign-in cancelled. The Google popup was closed before completing.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setErrorMessage('The Google popup was blocked by your browser. Please allow popups for this site and try again.');
+      } else {
+        setErrorMessage(err.message || 'Failed to authenticate with Google. Please try again.');
+      }
     }
   };
 
@@ -55,7 +44,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="Steepcore Logo" className="w-5 h-5 object-contain" />
             <h2 className="text-base font-semibold text-[#e6edf3]">
-              {mode === 'login' ? 'Sign In to STEEPCORE' : 'Create an Account'}
+              Sign In to STEEPCORE
             </h2>
           </div>
           <button 
@@ -67,7 +56,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </div>
 
         {/* Content Body */}
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+        <div className="p-6 flex flex-col gap-5">
           {errorMessage && (
             <div className="p-3 bg-[#f85149]/10 border border-[#f85149]/40 rounded-lg text-xs text-[#f85149] flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
@@ -82,100 +71,75 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           )}
 
-          {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-semibold text-[#7d8590] mb-1.5 uppercase">
-                Username
-              </label>
-              <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7d8590]" />
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="dev_creator" 
-                  required={mode === 'register'}
-                  className="w-full bg-[#010409] border border-[#30363d] rounded-md py-2 pl-9 pr-3 text-sm text-[#e6edf3] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] placeholder:text-[#484f58]"
-                />
-              </div>
-            </div>
-          )}
+          <div className="text-center space-y-1.5">
+            <h3 className="text-lg font-semibold text-[#e6edf3]">
+              Welcome to STEEPCORE
+            </h3>
+            <p className="text-xs text-[#7d8590] max-w-xs mx-auto">
+              Sign in with your Google account to access your roadmaps, checkpoint progress, and custom blueprints across all your devices.
+            </p>
+          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#7d8590] mb-1.5 uppercase">
-              {mode === 'login' ? 'Email or Username' : 'Email Address'}
-            </label>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7d8590]" />
-              <input 
-                type={mode === 'register' ? 'email' : 'text'} 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="developer@example.com" 
-                required
-                className="w-full bg-[#010409] border border-[#30363d] rounded-md py-2 pl-9 pr-3 text-sm text-[#e6edf3] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] placeholder:text-[#484f58]"
-              />
+          {/* Value Props */}
+          <div className="grid grid-cols-1 gap-2.5 p-3.5 bg-[#161b22]/70 border border-[#30363d] rounded-lg">
+            <div className="flex items-center gap-2.5 text-xs text-[#c9d1d9]">
+              <ShieldCheck size={16} className="text-[#3fb950] shrink-0" />
+              <span>Pre-verified email security — no OTP delay or spam folder issues</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-[#c9d1d9]">
+              <Database size={16} className="text-[#58a6ff] shrink-0" />
+              <span>Automatic real-time sync with STEEPCORE database API</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-[#c9d1d9]">
+              <Sparkles size={16} className="text-[#d29922] shrink-0" />
+              <span>Instant access to AI roadmap generator and progress checkpoints</span>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#7d8590] mb-1.5 uppercase">
-              Password
-            </label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7d8590]" />
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••" 
-                required
-                className="w-full bg-[#010409] border border-[#30363d] rounded-md py-2 pl-9 pr-3 text-sm text-[#e6edf3] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] placeholder:text-[#484f58]"
-              />
-            </div>
-          </div>
-
+          {/* Google Sign In Button */}
           <div className="pt-2 flex flex-col gap-3">
             <button
-              type="submit"
+              type="button"
+              onClick={handleGoogleSignIn}
               disabled={isLoading}
-              className="w-full bg-[#238636] hover:bg-[#2ea043] text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 border border-[rgba(255,255,255,0.1)] shadow-sm disabled:opacity-50"
+              className="w-full bg-white hover:bg-gray-100 text-gray-900 font-semibold py-2.5 px-4 rounded-lg text-sm transition-all flex items-center justify-center gap-3 shadow-md hover:shadow-lg disabled:opacity-60 cursor-pointer active:scale-[0.99]"
             >
-              {isLoading && <img src="/loader.svg" alt="Loading" className="animate-spin object-contain" style={{ width: 16, height: 16 }} />}
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-
-            <div className="text-center text-xs text-[#7d8590] mt-1">
-              {mode === 'login' ? (
+              {isLoading ? (
                 <>
-                  Don't have an account?{' '}
-                  <button 
-                    type="button" 
-                    onClick={() => { setMode('register'); setErrorMessage(null); }}
-                    className="text-[#58a6ff] hover:underline font-medium"
-                  >
-                    Register now
-                  </button>
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
+                  <span>Connecting to Google...</span>
                 </>
               ) : (
                 <>
-                  Already have an account?{' '}
-                  <button 
-                    type="button" 
-                    onClick={() => { setMode('login'); setErrorMessage(null); }}
-                    className="text-[#58a6ff] hover:underline font-medium"
-                  >
-                    Sign in
-                  </button>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Continue with Google</span>
                 </>
               )}
-            </div>
+            </button>
           </div>
-        </form>
+        </div>
 
         {/* Footer info */}
-        <div className="p-3 bg-[#161b22] border-t border-[#30363d] text-[11px] text-[#7d8590] text-center font-mono">
-          STEEPCOREAPI: https://steepcoreapi.onrender.com
+        <div className="p-3 bg-[#161b22] border-t border-[#30363d] text-[11px] text-[#7d8590] text-center font-mono flex items-center justify-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#3fb950] animate-pulse"></span>
+          <span>STEEPCOREAPI: /api/Auth/firebase-login (Linked with Database)</span>
         </div>
       </div>
     </div>
