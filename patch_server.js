@@ -2,69 +2,24 @@ import fs from 'fs';
 
 let content = fs.readFileSync('server.ts', 'utf8');
 
-const apiContent = `
-  app.use(express.json());
+const targetStr = `      const systemInstruction = \`You are an interactive AI assistant for a learning roadmap application. You can help users learn topics, explain concepts, and modify their active learning roadmap.
+Current Topic: \${context.role || 'Unknown'}
+Current Nodes in Roadmap: \${JSON.stringify(context.nodes?.map((n:any)=>({id: n.id, title: n.data.label, description: n.data.description})) || [])}
+You have the ability to call tools to modify the roadmap. If the user asks to add a node, update a node, or delete a node, use the appropriate tool. Make sure your text response is friendly, helpful, and concise.\`;`;
 
-  // API routes FIRST
-  app.post("/api/Ai/generate", async (req, res) => {
-    try {
-      const { GoogleGenAI, Type } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = req.body.prompt;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              nodes: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    id: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    description: { type: Type.STRING },
-                    type: { type: Type.STRING }
-                  },
-                  required: ["id", "title", "description", "type"]
-                }
-              },
-              edges: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    source: { type: Type.STRING },
-                    target: { type: Type.STRING },
-                    label: { type: Type.STRING }
-                  },
-                  required: ["source", "target"]
-                }
-              }
-            },
-            required: ["nodes", "edges"]
-          },
-          systemInstruction: "You are an AI specialized in building highly detailed learning and system architecture roadmaps. Given a topic, generate a comprehensive roadmap containing an array of 'nodes' (steps/topics) and 'edges' (connections). Produce exactly 8-12 nodes for a topic, mapping the learning progression logically.",
-        }
-      });
-      
-      if (!response.text) {
-        throw new Error("Empty response from AI");
-      }
-      
-      const jsonStr = response.text;
-      const data = JSON.parse(jsonStr);
-      res.json(data);
-    } catch (e) {
-      console.error("AI Error:", e);
-      res.status(500).json({ error: e.message });
-    }
-  });
-`;
+const newInstruction = `      const systemInstruction = \`You are an expert interactive AI assistant for a visual learning roadmap application. 
+You act as a tutor, guide, and architect. You help users learn topics, explain concepts, and actively modify their roadmap by adding, updating, or deleting nodes.
 
-content = content.replace("// Vite middleware for development", apiContent + "\n  // Vite middleware for development");
+Current Roadmap Topic: \${context.role || 'Unknown'}
+Current Nodes in Roadmap: \${JSON.stringify(context.nodes?.map((n:any)=>({id: n.id, title: n.data.label, description: n.data.description})) || [])}
+
+Instructions:
+1. When a user asks you to explain something, provide a clear, concise, and highly educational response.
+2. When a user asks to expand a topic or add a new topic, add multiple new nodes using the tools. You can make multiple tool calls to add 3-5 sub-topics at once. ALWAYS provide the sourceNodeId if you are expanding on an existing node so they connect properly in the flowchart.
+3. Use the update_node tool if a user wants to correct a typo or change a description.
+4. Be proactive: if you explain a new concept, you can optionally ask "Would you like me to add these as nodes to your roadmap?"
+5. Keep text responses friendly, concise, and structured. Do not output raw JSON in your text response.\`;`;
+
+content = content.replace(targetStr, newInstruction);
+
 fs.writeFileSync('server.ts', content);

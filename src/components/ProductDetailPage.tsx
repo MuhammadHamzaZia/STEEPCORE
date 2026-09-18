@@ -5,8 +5,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
 import { Blueprint, FlowchartNode } from '../types/schema';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+
+
 
 export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: { onNavigateToEditor?: () => void, onNavigateToCatalog?: () => void }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -26,9 +26,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
       setIsLoading(true);
       try {
         const bp = await api.getBlueprintById(selectedBlueprintId);
-        const bpNodes = await api.getNodesByBlueprintId(selectedBlueprintId);
         if (bp) setBlueprint(bp);
-        setNodes(bpNodes);
       } catch (error) {
         console.error("Failed to fetch blueprint details", error);
       } finally {
@@ -37,6 +35,12 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
     };
     fetchData();
   }, [selectedBlueprintId]);
+
+  useEffect(() => {
+    if (activeTab === 'nodes' && selectedBlueprintId && nodes.length === 0) {
+      api.getNodesByBlueprintId(selectedBlueprintId).then(setNodes).catch(console.error);
+    }
+  }, [activeTab, selectedBlueprintId, nodes.length]);
 
   if (isLoading) {
     return (
@@ -92,6 +96,18 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
     }
   };
 
+
+  if (!isLoading && !blueprint) {
+    return (
+      <div className="flex-1 w-full flex flex-col items-center justify-center bg-canvas-default p-8">
+        <div className="text-fg-muted mb-4">Blueprint not found or you don't have access.</div>
+        <button onClick={onNavigateToCatalog} className="px-4 py-2 bg-canvas-inset border border-border-default rounded-md text-sm">
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 w-full flex flex-col bg-canvas-default overflow-y-auto">
       {/* Breadcrumb Top Bar */}
@@ -126,43 +142,42 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
           
           {/* Canvas Preview Area */}
           <div className="w-full h-[300px] bg-canvas-inset border border-border-default rounded-lg relative overflow-hidden mb-8 flex items-center justify-center">
-            {blueprint && (blueprint as any).nodes && (blueprint as any).nodes.length > 0 ? (
-              <ReactFlow 
-                nodes={(blueprint as any).nodes.map((n: any) => ({
-                  id: String(n.id),
-                  position: { x: n.positionX || n.position?.x || 0, y: n.positionY || n.position?.y || 0 },
-                  data: { label: n.label || 'Node' },
-                  type: 'default',
-                  draggable: false
-                }))} 
-                edges={(blueprint as any).edges ? (blueprint as any).edges.map((e: any) => ({
-                  id: String(e.id),
-                  source: String(e.sourceNodeId || e.source),
-                  target: String(e.targetNodeId || e.target),
-                  animated: true
-                })) : []}
-                fitView 
-                proOptions={{ hideAttribution: true }}
-                nodesConnectable={false}
-                elementsSelectable={false}
-                panOnDrag={true}
-                zoomOnScroll={true}
-              >
-                <Background color="#30363d" gap={16} size={1} />
-                <Controls showInteractive={false} />
-              </ReactFlow>
-            ) : (
-              <>
-                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-                <div className="relative z-10 flex items-center justify-center h-full w-full opacity-30">
-                  <Sparkles className="w-16 h-16 text-fg-muted" />
+            
+              <div className="absolute inset-0 bg-canvas-inset flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'rgba(255, 255, 255, 0.5)' }}></div>
+                
+                {/* Abstract Mock Nodes */}
+                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center opacity-60">
+                    <div className="w-32 h-10 border border-action-accent bg-canvas-surface rounded shadow-[0_0_15px_rgba(35,131,226,0.3)] mb-0"></div>
+                    <div className="w-px h-6 bg-border-default"></div>
+                    
+                    <div className="w-[280px] h-px bg-border-default"></div>
+                    
+                    <div className="flex gap-12 -mt-px">
+                        <div className="flex flex-col items-center">
+                            <div className="w-px h-6 bg-border-default"></div>
+                            <div className="w-24 h-8 border border-border-default bg-canvas-surface rounded"></div>
+                            <div className="w-px h-6 bg-border-default"></div>
+                            <div className="w-20 h-8 border border-border-default bg-canvas-surface rounded-full"></div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="w-px h-6 bg-border-default"></div>
+                            <div className="w-24 h-8 border border-border-default bg-canvas-surface rounded"></div>
+                            <div className="w-px h-6 bg-border-default"></div>
+                            <div className="w-24 h-8 border border-border-default bg-canvas-surface rounded"></div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="w-px h-6 bg-border-default"></div>
+                            <div className="w-24 h-8 border border-border-default bg-canvas-surface rounded"></div>
+                        </div>
+                    </div>
                 </div>
-              </>
-            )}
+              </div>
+  
             
             <div className="absolute top-3 left-3 px-2.5 py-1 bg-canvas-surface/80 backdrop-blur-sm border border-border-default rounded text-[10px] uppercase tracking-wider font-semibold text-fg-muted flex items-center gap-1.5 z-10 pointer-events-none"> 
               <GitBranch size={12} /> 
-              Interactive Preview
+              Structural Preview
             </div>
           </div>
           {/* Title & Creator (Mobile mostly, or top of docs) */}

@@ -367,6 +367,47 @@ namespace STEEPCOREAPI.Migrations
                     b.ToTable("Transactions");
                 });
 
+            
+            modelBuilder.Entity("STEEPCOREAPI.Shared.Models.UserProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BlueprintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("NodeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlueprintId");
+
+                    b.HasIndex("NodeId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserProgresses");
+                });
+
             modelBuilder.Entity("STEEPCOREAPI.Shared.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -598,7 +639,34 @@ namespace STEEPCOREAPI.Migrations
                     b.Navigation("BlueprintsCreated");
 
                     b.Navigation("Transactions");
+                
+            modelBuilder.Entity("STEEPCOREAPI.Shared.Models.UserProgress", b =>
+                {
+                    b.HasOne("STEEPCOREAPI.Modules.Blueprints.Models.Blueprint", "Blueprint")
+                        .WithMany()
+                        .HasForeignKey("BlueprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("STEEPCOREAPI.Modules.Blueprints.Models.FlowchartNode", "Node")
+                        .WithMany()
+                        .HasForeignKey("NodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("STEEPCOREAPI.Shared.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blueprint");
+
+                    b.Navigation("Node");
+
+                    b.Navigation("User");
                 });
+});
 #pragma warning restore 612, 618
         }
     }

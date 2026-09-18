@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <!-- ASP.NET Core & WebAPI -->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    
     <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
 
@@ -16,22 +16,22 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
-    <PackageReference Include="pgvector" Version="0.2.1" />
+    
 
     <!-- ASP.NET Core Identity -->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
 
     <!-- JWT Authentication -->
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.0.3" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
 
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
 
     <!-- Configuration -->
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    
+    
       </ItemGroup>
 
   <ItemGroup>

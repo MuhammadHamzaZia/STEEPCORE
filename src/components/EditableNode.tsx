@@ -67,8 +67,17 @@ export const EditableNode = ({ id, data, isConnectable }: NodeProps) => {
     containerClass = 'min-w-[160px] max-w-[240px] px-6 py-3';
     textClass = 'text-amber-300 text-[11px] font-bold uppercase tracking-wider';
     bgElement = <div className="absolute inset-0 bg-[#120f08]/90 backdrop-blur-sm border border-amber-500/30 border-l-4 border-l-amber-500 rounded-md transition-colors group-hover:border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)]" />;
+  } else if (type === 'decision') {
+    // Flowchart: Decision - Diamond
+    containerClass = 'min-w-[120px] min-h-[120px] max-w-[200px] px-6 py-6';
+    textClass = 'text-purple-300 text-[11px] font-bold uppercase tracking-wider';
+    bgElement = <div className="absolute inset-0 bg-[#0a121e]/90 backdrop-blur-xl border border-purple-500/30 rotate-45 rounded shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-colors group-hover:border-purple-400 scale-75" />;
+  } else if (type === 'database') {
+    // Flowchart: Database - Cylinder representation
+    containerClass = 'min-w-[160px] max-w-[220px] px-6 py-5';
+    textClass = 'text-emerald-300 text-xs font-semibold';
+    bgElement = <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-sm border-2 border-emerald-500/30 rounded-xl transition-colors group-hover:border-emerald-500/60 shadow-[0_4px_0_rgba(16,185,129,0.2)] border-b-8" />;
   }
-
   return (
     <div 
       className={cn(

@@ -18,7 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import {
   AlertCircle, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
-  LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, 
+  LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, Menu, 
   Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon
 } from 'lucide-react';
 import { EditableNode, cn } from './EditableNode';
@@ -55,6 +55,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   
   // UI State
   const [leftSidebarTab, setLeftSidebarTab] = useState<'tools' | 'chat'>('tools');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   
   // Chat State
@@ -432,34 +433,43 @@ const openSaveModal = () => {
   return (
     <div className="flex flex-col h-screen w-full bg-canvas-default text-fg-default font-sans overflow-hidden">
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
+      <div className="h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-3 sm:px-4 z-50 flex-nowrap">
+        <div className="flex items-center gap-1 sm:gap-3">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
+            <Menu className="w-5 h-5" />
+          </button>
+          <button onClick={onBack} className="p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="h-4 w-px bg-border-default mx-1"></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="w-4 h-4 text-action-accent" />
-            <span>Workspace</span>
+            <span className="hidden sm:inline">Workspace</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
-            <Download className="w-4 h-4" /> Download PDF
-          </button>
-          <button onClick={onLayout} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
-            <Grid className="w-4 h-4" /> Layout
-          </button>
-          <button onClick={openSaveModal} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors">
-            <Save className="w-4 h-4" /> Save
-          </button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
+            <Download className="w-4 h-4" /> <span className="hidden sm:inline">Download PDF</span></button>
+          <button onClick={onLayout} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
+            <Grid className="w-4 h-4" /> <span className="hidden sm:inline">Layout</span></button>
+          <button onClick={openSaveModal} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors">
+            <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save</span></button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}
-        <div className="w-72 border-r border-border-default bg-canvas-surface flex flex-col z-10">
+        
+        {/* Overlay for mobile */}
+        {isSidebarOpen && (
+          <div 
+            className="md:hidden absolute inset-0 bg-black/50 z-20"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        {/* Left Sidebar */}
+        <div className={`absolute md:relative z-30 h-full w-80 md:w-80 border-r border-border-default bg-canvas-surface flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
           <div className="flex border-b border-border-default">
             <button 
               onClick={() => setLeftSidebarTab('tools')}
@@ -565,6 +575,7 @@ const openSaveModal = () => {
             </div>
           )}
           <ReactFlow
+            proOptions={{ hideAttribution: true }}
             nodes={nodes.map(n => ({
               ...n,
               data: {
