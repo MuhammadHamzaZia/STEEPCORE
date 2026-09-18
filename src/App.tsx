@@ -11,6 +11,7 @@ import { ProductDetailPage } from './components/ProductDetailPage';
 import { DashboardPage } from './components/DashboardPage';
 import { Layout } from './components/Layout';
 import { AuthModal } from './components/AuthModal';
+import { ToastProvider } from './components/Toast';
 import { useUIStore } from './store/useUIStore';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -52,15 +53,15 @@ export default function App() {
 
   if (currentPage === 'editor') {
     return (
-      <>
+      <ToastProvider>
         <RoadmapWorkspace initialBlueprintId={selectedBlueprintId || undefined} onBack={() => handleNavigate('product')} />
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      </>
+      </ToastProvider>
     );
   }
 
   return (
-    <>
+    <ToastProvider>
       <Layout onNavigate={handleNavigate} currentPage={currentPage}>
         {currentPage === 'landing' && (
           <LandingPage 
@@ -116,6 +117,6 @@ export default function App() {
 
       {/* Global Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-    </>
+    </ToastProvider>
   );
 }

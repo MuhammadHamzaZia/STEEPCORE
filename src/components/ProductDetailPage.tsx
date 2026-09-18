@@ -3,6 +3,7 @@ import { ChevronRight, ExternalLink, Sparkles, Check, Star, ShieldCheck, Downloa
 import { useUIStore } from '../store/useUIStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
+import { useToast } from './Toast';
 import { api } from '../services/api';
 import { Blueprint, FlowchartNode } from '../types/schema';
 
@@ -13,6 +14,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
   const { selectedBlueprintId, setIsAuthModalOpen, setSelectedDomain } = useUIStore();
   const { isAuthenticated, user } = useAuthStore();
   const { activeRoadmaps, initializeRoadmap } = useLibraryStore();
+  const { showError, showSuccess } = useToast();
   
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [nodes, setNodes] = useState<FlowchartNode[]>([]);
@@ -83,8 +85,10 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
       try {
         await api.requestBlueprintAccess(blueprint.id, blueprint.creatorId);
         setIsAccessRequested(true);
-      } catch (err) {
+        showSuccess("Access requested! The creator has been notified.");
+      } catch (err: any) {
         console.error("Error requesting access:", err);
+        showError(err?.message || "Failed to request access.");
       } finally {
         setIsProcessingCheckout(false);
       }

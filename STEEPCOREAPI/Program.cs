@@ -211,6 +211,31 @@ using (var scope = app.Services.CreateScope())
         await dbContext.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully.");
 
+        try
+        {
+            const string ensureTableSql = @"
+                CREATE TABLE IF NOT EXISTS ""UserProgresses"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""UserId"" text NOT NULL,
+                    ""BlueprintId"" uuid NOT NULL,
+                    ""NodeId"" uuid NOT NULL,
+                    ""Status"" text NOT NULL,
+                    ""Notes"" text NULL,
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+                    ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_UserProgresses_BlueprintId"" ON ""UserProgresses"" (""BlueprintId"");
+                CREATE INDEX IF NOT EXISTS ""IX_UserProgresses_NodeId"" ON ""UserProgresses"" (""NodeId"");
+                CREATE INDEX IF NOT EXISTS ""IX_UserProgresses_UserId"" ON ""UserProgresses"" (""UserId"");
+            ";
+            await dbContext.Database.ExecuteSqlRawAsync(ensureTableSql);
+            logger.LogInformation("Ensured UserProgresses table exists.");
+        }
+        catch (Exception tableEx)
+        {
+            logger.LogWarning(tableEx, "UserProgresses direct ensure check warning.");
+        }
+
         if (app.Environment.IsDevelopment())
         {
             await DbSeeder.InitializeAsync(dbContext, userManager, logger);

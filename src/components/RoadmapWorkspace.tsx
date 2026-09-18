@@ -23,12 +23,13 @@ import {
   Lock
 } from 'lucide-react';
 import { EditableNode, cn } from './EditableNode';
-import { getLayoutedElements } from '../lib/flow';
+import { getLayoutedElements, ensureConnectedEdges } from '../lib/flow';
 import { api } from '../services/api';
 import { apiClient } from '../services/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useUIStore } from '../store/useUIStore';
+import { useToast } from './Toast';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 
@@ -47,6 +48,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   const { isAuthenticated } = useAuthStore();
   const { setIsAuthModalOpen } = useUIStore();
   const { activeRoadmaps, markNodeCompleted, setRoadmapState, initializeRoadmap } = useLibraryStore();
+  const { showError, showSuccess } = useToast();
   
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -86,18 +88,26 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
         description: saveDesc,
         price: savePrice,
         isPublished: isPublic,
-        nodes: nodes.map(n => ({          label: typeof n.data.label === 'string' ? n.data.label : 'Node',          type: typeof n.data.type === 'string' ? n.data.type : 'topic',          description: typeof n.data.description === 'string' ? n.data.description : undefined,          positionX: n.position.x,          positionY: n.position.y        })),
+        nodes: nodes.map(n => ({
+          id: n.id,
+          label: typeof n.data.label === 'string' ? n.data.label : 'Node',
+          type: typeof n.data.type === 'string' ? n.data.type : 'topic',
+          description: typeof n.data.description === 'string' ? n.data.description : undefined,
+          positionX: Math.round(n.position.x),
+          positionY: Math.round(n.position.y)
+        })),
         edges: edges.map(e => {
           const sourceNode = nodes.find(n => n.id === e.source);
           const targetNode = nodes.find(n => n.id === e.target);
           return {
+            sourceNodeId: e.source,
+            targetNodeId: e.target,
             source: sourceNode ? sourceNode.data.label : e.source,
             target: targetNode ? targetNode.data.label : e.target,
             label: e.label ? String(e.label) : ''
           };
         })
       };
-      
       
       try {
         if (currentBlueprintId) {
@@ -114,16 +124,16 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
         if (err.message?.includes('401')) {
           setIsAuthModalOpen(true);
         } else {
-          alert('Failed to save roadmap.');
+          showError('Failed to save roadmap.');
         }
         return;
       }
       
       setIsSaveModalOpen(false);
-      alert('Roadmap saved successfully to your profile!');
+      showSuccess('Roadmap saved successfully to your profile!');
     } catch (err) {
       console.error(err);
-      alert('Error saving roadmap.');
+      showError('Error saving roadmap.');
     } finally {
       setIsSaving(false);
     }
@@ -256,30 +266,58 @@ const openSaveModal = () => {
           setIsPublic(bp.isPublished || false);
           
           const bpNodes = (bp as any).nodes || [];
-          const initialNodes: Node[] = bpNodes.map((n: any) => ({
-            id: String(n.id),
-            type: 'editable',
-            position: { x: n.positionX || Math.random() * 500, y: n.positionY || Math.random() * 500 },
-            data: {
-              label: n.label,
-              type: n.type || 'topic',
-              description: n.description || '',
-              color: 'default',
-              isCompleted: fetchedCompletedNodes.includes(String(n.id))
-            },
-          }));
-          setNodes(initialNodes);
+          const initialNodes: Node[] = bpNodes.map((n: any, idx: number) => {
+            const hasX = typeof n.positionX === 'number' && !isNaN(n.positionX);
+            const hasY = typeof n.positionY === 'number' && !isNaN(n.positionY);
+            return {
+              id: String(n.id),
+              type: 'editable',
+              position: {
+                x: hasX ? n.positionX : 0,
+                y: hasY ? n.positionY : idx * 100
+              },
+              data: {
+                label: n.label,
+                type: n.type || 'topic',
+                description: n.description || '',
+                color: 'default',
+                isCompleted: fetchedCompletedNodes.includes(String(n.id))
+              },
+            };
+          });
           
           const bpEdges = (bp as any).edges || [];
-          const initialEdges: Edge[] = bpEdges.map((e: any) => ({
-            id: String(e.id),
-            source: String(e.sourceNodeId),
-            target: String(e.targetNodeId),
+          const initialEdges: Edge[] = bpEdges.map((e: any, idx: number) => ({
+            id: String(e.id || `edge-${idx}`),
+            source: String(e.sourceNodeId || e.source),
+            target: String(e.targetNodeId || e.target),
             label: e.label || '',
             type: 'smoothstep',
             animated: true
-          }));
-          setEdges(initialEdges);
+          })).filter((e: Edge) => e.source && e.target && e.source !== e.target);
+
+          // Guarantee all nodes have proper hierarchical connections and a solid root base
+          const connectedEdges = ensureConnectedEdges(initialNodes, initialEdges);
+
+          // Check if coordinates need clean tree layout (e.g. stacked in a thin column or all at 0)
+          const xs = initialNodes.map(n => n.position.x);
+          const xSpan = xs.length > 1 ? Math.max(...xs) - Math.min(...xs) : 0;
+          const shouldAutoLayout = xSpan < 160 || initialNodes.some(n => n.position.x === 0 && n.position.y === 0);
+
+          if (shouldAutoLayout || connectedEdges.length !== initialEdges.length) {
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(initialNodes, connectedEdges, 'TB');
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
+          } else {
+            setNodes(initialNodes);
+            setEdges(connectedEdges);
+          }
+
+          setTimeout(() => {
+            if (reactFlowInstance) {
+              reactFlowInstance.fitView({ padding: 0.25, duration: 600 });
+            }
+          }, 150);
       }
     } catch (e) {
       console.error(e);
@@ -476,10 +514,12 @@ const openSaveModal = () => {
   };
 
   const onLayout = useCallback(() => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'TB');
+    const connectedEdges = ensureConnectedEdges(nodes, edges);
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, connectedEdges, 'TB');
     setNodes([...layoutedNodes]);
     setEdges([...layoutedEdges]);
-    setTimeout(() => reactFlowInstance.fitView({ duration: 800, padding: 0.2 }), 50);
+    setTimeout(() => reactFlowInstance.fitView({ duration: 600, padding: 0.2 }), 50);
+    showSuccess("Nodes organized into clean connected hierarchy");
   }, [nodes, edges, setNodes, setEdges, reactFlowInstance]);
 
   return (
@@ -735,9 +775,9 @@ const openSaveModal = () => {
       </div>
 
       {errorMsg && (
-        <div className="absolute top-4 right-4 z-50 bg-canvas-surface border-l-4 border-l-red-500 border border-border-default px-4 py-3 rounded-md shadow-2xl flex items-start gap-3 max-w-[300px] animate-in fade-in slide-in-from-top-2">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-          <div className="flex-1 text-xs font-medium leading-relaxed text-fg-default">
+        <div className="absolute top-4 right-4 z-50 bg-[#161b22] border border-[#f85149]/40 px-3.5 py-2 rounded-lg shadow-xl flex items-center gap-2.5 max-w-sm animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-[#f85149]" />
+          <span className="flex-1 text-xs font-medium text-[#e6edf3] leading-snug">
             {(() => {
               try {
                 const parsed = JSON.parse(errorMsg);
@@ -746,9 +786,13 @@ const openSaveModal = () => {
               } catch (e) {}
               return errorMsg;
             })()}
-          </div>
-          <button onClick={() => setErrorMsg(null)} className="shrink-0 hover:text-red-400 text-fg-muted transition-colors">
-            <X className="w-4 h-4" />
+          </span>
+          <button 
+            onClick={() => setErrorMsg(null)} 
+            className="shrink-0 text-[#7d8590] hover:text-[#e6edf3] p-1 rounded hover:bg-[#21262d] transition-colors"
+            aria-label="Dismiss error"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}

@@ -58,16 +58,26 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Content Body */}
         <div className="p-6 flex flex-col gap-5">
           {errorMessage && (
-            <div className="p-3 bg-[#f85149]/10 border border-[#f85149]/40 rounded-lg text-xs text-[#f85149] flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="px-3.5 py-2.5 bg-[#21262d] border border-[#f85149]/30 rounded-lg text-xs text-[#e6edf3] flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <AlertCircle size={15} className="text-[#f85149] shrink-0" />
+                <span className="text-[#f0883e] font-medium leading-tight">{errorMessage}</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setErrorMessage(null)} 
+                className="text-[#7d8590] hover:text-[#e6edf3] p-0.5 rounded transition-colors"
+                aria-label="Clear error"
+              >
+                <X size={14} />
+              </button>
             </div>
           )}
 
           {successMessage && (
-            <div className="p-3 bg-[#238636]/10 border border-[#238636]/40 rounded-lg text-xs text-[#3fb950] flex items-center gap-2">
-              <CheckCircle2 size={16} className="shrink-0" />
-              <span>{successMessage}</span>
+            <div className="px-3.5 py-2.5 bg-[#21262d] border border-[#238636]/40 rounded-lg text-xs text-[#3fb950] flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+              <CheckCircle2 size={15} className="shrink-0" />
+              <span className="font-medium leading-tight">{successMessage}</span>
             </div>
           )}
 
