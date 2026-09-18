@@ -34,11 +34,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
       setIsLoading(true);
       try {
         const [trending, suggestions, counts] = await Promise.all([
-          api.getTrendingBlueprints(3),
+          api.getTrendingBlueprints(20),
           api.getQuickSuggestions(),
           api.getDomainCounts()
         ]);
-        setTrendingBlueprints(trending);
+        if (trending && trending.length > 0) {
+          const shuffledTrending = [...trending].sort(() => 0.5 - Math.random());
+          setTrendingBlueprints(shuffledTrending.slice(0, 3));
+        } else {
+          setTrendingBlueprints([]);
+        }
         if (suggestions && suggestions.length > 0) {
           const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
           setQuickSuggestions(shuffled.slice(0, 15));

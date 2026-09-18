@@ -23,7 +23,7 @@ async function startServer() {
       const prompt = req.body.prompt;
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -84,7 +84,7 @@ async function startServer() {
       
       if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
-        console.warn("AI API limit/busy (503/429):", errMsg);
+        console.warn("AI API limit/busy (503/429):", errMsg, e);
         res.status(503).json({ error: errMsg });
       } else {
         console.error("AI Error:", e);
@@ -104,8 +104,33 @@ async function startServer() {
 You can help users learn topics, explain concepts, and modify their active learning roadmap.
 Current Topic: ${context.role || 'Unknown'}
 Current Nodes in Roadmap: ${JSON.stringify(context.nodes?.map((n:any)=>({id: n.id, title: n.data.label, description: n.data.description})) || [])}
-You have the ability to call tools to modify the roadmap. If the user asks to add a node, update a node, or delete a node, use the appropriate tool. 
+You have the ability to call tools to modify the roadmap. If the user asks to add a node, update a node, or delete a node, use the appropriate tool. If the user asks to add a whole new roadmap, list of topics, or multiple connected nodes, use the add_multiple_nodes tool to generate them all at once. 
 Make sure your text response is friendly, helpful, and concise.`;
+
+      const tool_addMultipleNodes = {
+        name: "add_multiple_nodes",
+        description: "Add a complete roadmap or multiple new connected nodes to the workspace at once. Use this when the user asks to add a new roadmap or multiple topics.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            nodes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING, description: "A unique temporary ID for this node" },
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  sourceNodeId: { type: Type.STRING, description: "ID of the parent node to connect from. Can be an existing node ID or one of the temporary IDs defined in this array." }
+                },
+                required: ["id", "title", "description", "type"]
+              }
+            }
+          },
+          required: ["nodes"]
+        }
+      };
 
       const tool_addNode = {
         name: "add_node",
@@ -154,9 +179,9 @@ Make sure your text response is friendly, helpful, and concise.`;
       }));
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-3.6-flash",
         contents: formattedMessages,
-        tools: [{ functionDeclarations: [tool_addNode, tool_updateNode, tool_deleteNode] }],
+        tools: [{ functionDeclarations: [tool_addNode, tool_addMultipleNodes, tool_updateNode, tool_deleteNode] }],
         config: { systemInstruction }
       });
 
@@ -167,6 +192,8 @@ Make sure your text response is friendly, helpful, and concise.`;
       for (const call of functionCalls) {
         if (call.name === 'add_node') {
           actions.push({ type: 'ADD_NODE', node: call.args, sourceNodeId: call.args.sourceNodeId });
+        } else if (call.name === 'add_multiple_nodes') {
+          actions.push({ type: 'ADD_MULTIPLE_NODES', nodes: call.args.nodes });
         } else if (call.name === 'update_node') {
           actions.push({ type: 'UPDATE_NODE', nodeId: call.args.nodeId, updates: { label: call.args.title, description: call.args.description } });
         } else if (call.name === 'delete_node') {
@@ -190,7 +217,7 @@ Make sure your text response is friendly, helpful, and concise.`;
       
       if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
-        console.warn("AI Chat API limit/busy (503/429):", errMsg);
+        console.warn("AI Chat API limit/busy (503/429):", errMsg, e);
         res.status(503).json({ error: errMsg });
       } else {
         console.error("AI Chat Error:", e);
