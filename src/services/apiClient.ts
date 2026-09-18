@@ -2,7 +2,11 @@
  * Centralized API Client for STEEPCOREAPI (https://steepcoreapi.onrender.com)
  */
 
-const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://steepcoreapi.onrender.com';
+let envBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+if (envBaseUrl && (envBaseUrl === '/' || envBaseUrl.includes('run.app') || envBaseUrl.includes('localhost'))) {
+  envBaseUrl = null; // Ignore self-referential or local URLs for the backend API
+}
+const BASE_URL = envBaseUrl || 'https://steepcoreapi.onrender.com';
 
 export interface ApiError {
   message: string;
@@ -68,7 +72,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
           const errData = await retryRes.json().catch(() => ({}));
           throw new Error(errData.message || `API Error (${retryRes.status})`);
         }
-        return await retryRes.json();
+        try {
+          const text = await retryRes.text();
+          return JSON.parse(text);
+        } catch (parseError) {
+          throw new Error("Failed to parse JSON from " + url + " after retry - Server returned HTML.");
+        }
       }
     }
 
@@ -100,7 +109,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       throw new Error(msg);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      const text = await response.text();
+      data = JSON.parse(text);
+    } catch (parseError) {
+      throw new Error("Failed to parse JSON from " + url + " - Server returned HTML or invalid data.");
+    }
     if (data && data.error) {
       const msg = typeof data.error === 'string' 
         ? data.error 
@@ -138,7 +153,8 @@ async function refreshTokenApi(): Promise<boolean> {
       body: JSON.stringify({ refreshToken }),
     });
     if (res.ok) {
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text);
       const newToken = data.token || data.accessToken;
       if (newToken) {
         setAuthToken(newToken);

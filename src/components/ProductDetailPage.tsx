@@ -77,7 +77,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
       setIsProcessingCheckout(true);
       
       try {
-        await api.requestBlueprintAccess(blueprint.id);
+        await api.requestBlueprintAccess(blueprint.id, blueprint.creatorId);
         setIsAccessRequested(true);
       } catch (err) {
         console.error("Error requesting access:", err);

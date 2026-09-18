@@ -1,0 +1,10 @@
+HTTP/1.1 500 Internal Server Error
+X-Powered-By: Express
+Content-Type: application/json; charset=utf-8
+Content-Length: 33
+ETag: W/"21-09EKgVEafGiBCXVyNe9k3klXs+M"
+Date: Wed, 16 Sep 2026 16:36:47 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"contents are required"}

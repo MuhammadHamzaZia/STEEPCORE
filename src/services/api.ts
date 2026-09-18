@@ -312,8 +312,8 @@ export const api = {
     return apiClient.delete(`/api/Blueprints/${id}`);
   },
 
-  async requestBlueprintAccess(blueprintId: string) {
-    return apiClient.post('/api/AccessRequests', { blueprintId });
+  async requestBlueprintAccess(blueprintId: string, creatorId?: string) {
+    return apiClient.post('/api/AccessRequests', { blueprintId, creatorId });
   },
 
   // Checkout Module

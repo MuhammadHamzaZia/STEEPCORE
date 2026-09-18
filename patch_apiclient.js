@@ -1,14 +1,33 @@
 import fs from 'fs';
 
-let code = fs.readFileSync('src/services/apiClient.ts', 'utf8');
+let content = fs.readFileSync('src/services/apiClient.ts', 'utf8');
 
-code = code.replace(
-  /\} catch \(err: any\) \{/g,
-  `} catch (err: any) {
-    if (err.message && (err.message.includes('429') || err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('rate limit'))) {
-       throw new Error('The AI free generation quota has been exceeded. Please try again later.');
+// Replace standard response.json() with robust version
+content = content.replace(
+  'const data = await response.json();',
+  `let data;
+    try {
+      const text = await response.text();
+      data = JSON.parse(text);
+    } catch (parseError) {
+      throw new Error("Failed to parse JSON from " + url + " - Server returned HTML or invalid data.");
     }`
 );
 
-fs.writeFileSync('src/services/apiClient.ts', code);
-console.log('patched apiClient error handling');
+content = content.replace(
+  'return await retryRes.json();',
+  `try {
+          const text = await retryRes.text();
+          return JSON.parse(text);
+        } catch (parseError) {
+          throw new Error("Failed to parse JSON from " + url + " after retry - Server returned HTML.");
+        }`
+);
+
+content = content.replace(
+  'const data = await res.json();',
+  `const text = await res.text();
+      const data = JSON.parse(text);`
+);
+
+fs.writeFileSync('src/services/apiClient.ts', content);

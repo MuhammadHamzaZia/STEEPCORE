@@ -1,0 +1,10 @@
+HTTP/1.1 503 Service Unavailable
+X-Powered-By: Express
+Content-Type: application/json; charset=utf-8
+Content-Length: 100
+ETag: W/"64-hHPhniXE5tT7y2pl2BukJMvIaP0"
+Date: Wed, 16 Sep 2026 16:36:33 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"The AI service is currently experiencing high demand. Please try again in a few moments."}

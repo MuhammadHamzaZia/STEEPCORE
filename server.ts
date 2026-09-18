@@ -70,7 +70,6 @@ async function startServer() {
       const data = JSON.parse(jsonStr);
       res.json(data);
     } catch (e: any) {
-      console.error("AI Error:", e);
       let errMsg = e.message || "Unknown error";
       
       try {
@@ -83,10 +82,14 @@ async function startServer() {
         }
       } catch(err) {}
       
-      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE')) {
+      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+        console.warn("AI API limit/busy (503/429):", errMsg);
+        res.status(503).json({ error: errMsg });
+      } else {
+        console.error("AI Error:", e);
+        res.status(500).json({ error: errMsg });
       }
-      res.status(503).json({ error: errMsg });
     }
   });
 
@@ -173,7 +176,6 @@ Make sure your text response is friendly, helpful, and concise.`;
 
       res.json({ text, actions });
     } catch (e: any) {
-      console.error("AI Chat Error:", e);
       let errMsg = e.message || "Unknown error";
       
       try {
@@ -186,10 +188,14 @@ Make sure your text response is friendly, helpful, and concise.`;
         }
       } catch(err) {}
       
-      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE')) {
+      if (errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('UNAVAILABLE') || errMsg.includes('429') || errMsg.includes('quota')) {
         errMsg = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+        console.warn("AI Chat API limit/busy (503/429):", errMsg);
+        res.status(503).json({ error: errMsg });
+      } else {
+        console.error("AI Chat Error:", e);
+        res.status(500).json({ error: errMsg });
       }
-      res.status(503).json({ error: errMsg });
     }
   });
 

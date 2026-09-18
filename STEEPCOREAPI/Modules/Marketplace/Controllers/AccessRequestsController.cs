@@ -26,7 +26,7 @@ public class AccessRequestsController : ControllerBase
 
         var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
-        _logger.LogInformation($"User {userId} requested access to blueprint {request.BlueprintId}");
+        _logger.LogInformation($"User {userId} requested access to blueprint {request.BlueprintId} from creator {request.CreatorId}");
         
         // Normally, this would save to a database and notify the owner.
         // For now, we simulate a successful request queueing.
@@ -37,4 +37,5 @@ public class AccessRequestsController : ControllerBase
 public class AccessRequestDto
 {
     public Guid BlueprintId { get; set; }
+    public string? CreatorId { get; set; }
 }
