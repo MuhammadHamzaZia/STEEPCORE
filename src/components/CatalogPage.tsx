@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Sparkles, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Sparkles, Check, RefreshCw } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
@@ -171,6 +171,8 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -228,7 +230,8 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
           }
           setHasMore(false);
         } else {
-          fetchedItems = await api.getBlueprints(page, PAGE_SIZE);
+          const forceRefresh = refreshCount > 0 && isFirstPage;
+          fetchedItems = await api.getBlueprints(page, PAGE_SIZE, undefined, forceRefresh);
           setHasMore(fetchedItems.length >= PAGE_SIZE);
         }
 
@@ -271,6 +274,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
           setIsLoading(false);
           setIsLoadingMore(false);
           setIsStreaming(false);
+          setIsRefreshing(false);
         }
       }
     };
@@ -280,7 +284,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     return () => {
       isCancelled = true;
     };
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, refreshCount]);
 
   
 
@@ -544,35 +548,55 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                 />
               </div>
               
-              <div className="relative shrink-0 whitespace-nowrap">
-                <button 
-                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                  className="flex items-center gap-2 bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    if (isRefreshing) return;
+                    setIsRefreshing(true);
+                    setBlueprints([]);
+                    setPage(1);
+                    setHasMore(true);
+                    setSkeletonsCount(PAGE_SIZE);
+                    setRefreshCount(prev => prev + 1);
+                  }}
+                  disabled={isRefreshing}
+                  title="Sync live catalog from database API"
+                  className="flex items-center gap-1.5 bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
-                  <Filter size={14} className="text-fg-muted" />
-                  <span>Sort: {sortOptions.find(o => o.id === sortBy)?.label}</span>
-                  <ChevronDown size={14} className="text-fg-muted ml-1" />
+                  <RefreshCw size={13} className={`text-fg-muted ${isRefreshing ? 'animate-spin text-action-accent' : ''}`} />
+                  <span className="hidden sm:inline">Sync Live</span>
                 </button>
-                
-                {isSortDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsSortDropdownOpen(false)}></div>
-                    <div className="absolute right-0 mt-2 w-48 bg-canvas-surface border border-border-default rounded-md shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                      {sortOptions.map(option => (
-                        <button
-                          key={option.id}
-                          onClick={() => {
-                            setSortBy(option.id as any);
-                            setIsSortDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortBy === option.id ? 'bg-canvas-inset text-fg-default font-medium' : 'text-fg-muted hover:bg-canvas-inset hover:text-fg-default'}`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+
+                <div className="relative shrink-0 whitespace-nowrap">
+                  <button 
+                    onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                    className="flex items-center gap-2 bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                  >
+                    <Filter size={14} className="text-fg-muted" />
+                    <span>Sort: {sortOptions.find(o => o.id === sortBy)?.label}</span>
+                    <ChevronDown size={14} className="text-fg-muted ml-1" />
+                  </button>
+                  
+                  {isSortDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsSortDropdownOpen(false)}></div>
+                      <div className="absolute right-0 mt-2 w-48 bg-canvas-surface border border-border-default rounded-md shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                        {sortOptions.map(option => (
+                          <button
+                            key={option.id}
+                            onClick={() => {
+                              setSortBy(option.id as any);
+                              setIsSortDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortBy === option.id ? 'bg-canvas-inset text-fg-default font-medium' : 'text-fg-muted hover:bg-canvas-inset hover:text-fg-default'}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>

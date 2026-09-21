@@ -186,9 +186,10 @@ export const api = {
   },
 
   // Blueprints
-  async getBlueprints(page: number = 1, pageSize: number = 20, domainFilter?: string): Promise<Blueprint[]> {
+  async getBlueprints(page: number = 1, pageSize: number = 20, domainFilter?: string, forceRefresh: boolean = false): Promise<Blueprint[]> {
     try {
-      const data = await apiClient.get<any[]>(`/api/Blueprints/published?pageNumber=${page}&pageSize=${pageSize}`);
+      const timestampParam = forceRefresh ? `&_t=${Date.now()}&refresh=true` : '';
+      const data = await apiClient.get<any[]>(`/api/Blueprints/published?pageNumber=${page}&pageSize=${pageSize}${timestampParam}`, { skipCache: forceRefresh });
       if (Array.isArray(data)) {
         let formatted = data.map(item => ({
           ...item,
@@ -298,6 +299,9 @@ export const api = {
   async generateAiBlueprint(params: { prompt: string }) {
     try {
       const res = await apiClient.post<any>(`/api/Ai/generate?_t=${Date.now()}`, { prompt: params.prompt });
+      if (res) {
+        res.price = 0;
+      }
       return res;
     } catch (error: any) {
       console.warn('Live AI endpoint returned error or unavailable:', error);
@@ -306,8 +310,12 @@ export const api = {
   },
 
   // CRUD Blueprints
-  async createBlueprint(payload: { title: string; description: string; domain?: string; nodes?: any[]; edges?: any[] }) {
-    return apiClient.post('/api/Blueprints', payload);
+  async createBlueprint(payload: { title: string; description: string; domain?: string; price?: number; nodes?: any[]; edges?: any[] }) {
+    const dataToSend = {
+      ...payload,
+      price: payload.price !== undefined ? payload.price : 0
+    };
+    return apiClient.post('/api/Blueprints', dataToSend);
   },
 
   async updateBlueprint(id: string, payload: any) {

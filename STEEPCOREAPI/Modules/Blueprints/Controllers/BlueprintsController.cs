@@ -85,52 +85,7 @@ public class BlueprintsController : ControllerBase
                 UpdatedAt = DateTime.UtcNow
             };
 
-            if (request.Nodes?.Any() == true)
-            {
-                foreach (var nodeDto in request.Nodes)
-                {
-                    blueprint.Nodes.Add(new FlowchartNode
-                    {
-                        Id = Guid.NewGuid(),
-                        Label = nodeDto.Label,
-                        Type = ParseNodeType(nodeDto.Type),
-                        PositionX = nodeDto.PositionX,
-                        PositionY = nodeDto.PositionY,
-                        Description = nodeDto.Description,
-                        SubBlueprintId = nodeDto.SubBlueprintId,
-                        IsExpandable = nodeDto.IsExpandable,
-                        BlueprintId = blueprint.Id
-                    });
-                }
-            }
-
-            if (request.Edges?.Any() == true)
-            {
-                var nodeMap = blueprint.Nodes.ToDictionary(n => n.Label, n => n.Id);
-
-                foreach (var edgeDto in request.Edges)
-                {
-                    var sourceId = edgeDto.SourceNodeId != Guid.Empty
-                        ? edgeDto.SourceNodeId
-                        : (nodeMap.TryGetValue(edgeDto.Source, out var id) ? id : Guid.Empty);
-
-                    var targetId = edgeDto.TargetNodeId != Guid.Empty
-                        ? edgeDto.TargetNodeId
-                        : (nodeMap.TryGetValue(edgeDto.Target, out var id2) ? id2 : Guid.Empty);
-
-                    if (sourceId != Guid.Empty && targetId != Guid.Empty)
-                    {
-                        blueprint.Edges.Add(new FlowchartEdge
-                        {
-                            Id = Guid.NewGuid(),
-                            SourceNodeId = sourceId,
-                            TargetNodeId = targetId,
-                            Label = edgeDto.Label,
-                            BlueprintId = blueprint.Id
-                        });
-                    }
-                }
-            }
+            PopulateNodesAndEdges(blueprint, request.Nodes, request.Edges);
 
             if (!string.IsNullOrWhiteSpace(blueprint.Title))
             {
@@ -317,13 +272,14 @@ public class BlueprintsController : ControllerBase
     public async Task<ActionResult<List<BlueprintResponseDto>>> GetPublishedBlueprints(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] bool refresh = false,
         CancellationToken cancellationToken = default)
     {
         if (pageSize < 1 || pageSize > 50)
             return BadRequest(new { message = "Invalid page size" });
 
         var cacheKey = $"published_{pageNumber}_{pageSize}";
-        if (_cache.TryGetValue(cacheKey, out List<BlueprintResponseDto>? cached) && cached != null)
+        if (!refresh && _cache.TryGetValue(cacheKey, out List<BlueprintResponseDto>? cached) && cached != null)
         {
             return Ok(cached);
         }
@@ -356,7 +312,7 @@ public class BlueprintsController : ControllerBase
                 })
                 .ToListAsync(cancellationToken);
 
-            _cache.Set(cacheKey, response, TimeSpan.FromMinutes(5));
+            _cache.Set(cacheKey, response, TimeSpan.FromSeconds(15));
             return Ok(response);
         }
         catch (Exception ex)
@@ -395,6 +351,13 @@ public class BlueprintsController : ControllerBase
             existing.Price = request.Price ?? existing.Price;
             existing.IsPublished = request.IsPublished ?? existing.IsPublished;
 
+            if (request.Nodes != null && request.Nodes.Any())
+            {
+                existing.Nodes.Clear();
+                existing.Edges.Clear();
+                PopulateNodesAndEdges(existing, request.Nodes, request.Edges);
+            }
+
             var updated = await _service.UpdateBlueprintAsync(existing, cancellationToken);
             return Ok(MapToResponse(updated));
         }
@@ -402,6 +365,92 @@ public class BlueprintsController : ControllerBase
         {
             _logger.LogError(ex, "Error updating blueprint");
             throw;
+        }
+    }
+
+    private void PopulateNodesAndEdges(Blueprint blueprint, List<CreateNodeRequestDto>? nodeDtos, List<CreateEdgeRequestDto>? edgeDtos)
+    {
+        if (nodeDtos?.Any() != true) return;
+
+        var idMap = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        var labelMap = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        var indexMap = new Dictionary<int, Guid>();
+
+        for (int i = 0; i < nodeDtos.Count; i++)
+        {
+            var nodeDto = nodeDtos[i];
+            Guid nodeId = Guid.NewGuid();
+            if (!string.IsNullOrWhiteSpace(nodeDto.Id) && Guid.TryParse(nodeDto.Id, out var parsedId) && parsedId != Guid.Empty)
+            {
+                nodeId = parsedId;
+            }
+
+            var node = new FlowchartNode
+            {
+                Id = nodeId,
+                Label = nodeDto.Label ?? $"Step {i + 1}",
+                Type = ParseNodeType(nodeDto.Type),
+                PositionX = nodeDto.PositionX,
+                PositionY = nodeDto.PositionY,
+                Description = nodeDto.Description,
+                SubBlueprintId = nodeDto.SubBlueprintId,
+                IsExpandable = nodeDto.IsExpandable,
+                BlueprintId = blueprint.Id
+            };
+            blueprint.Nodes.Add(node);
+
+            if (!string.IsNullOrWhiteSpace(nodeDto.Id))
+                idMap[nodeDto.Id.Trim()] = nodeId;
+
+            idMap[nodeId.ToString()] = nodeId;
+
+            var cleanLabel = (nodeDto.Label ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(cleanLabel) && !labelMap.ContainsKey(cleanLabel))
+                labelMap[cleanLabel] = nodeId;
+
+            indexMap[i] = nodeId;
+            idMap[$"node-{i}"] = nodeId;
+            idMap[$"step-{i}"] = nodeId;
+        }
+
+        if (edgeDtos?.Any() != true) return;
+
+        Guid ResolveNodeId(string? rawId, string? rawLabel)
+        {
+            if (!string.IsNullOrWhiteSpace(rawId))
+            {
+                var trimmed = rawId.Trim();
+                if (idMap.TryGetValue(trimmed, out var id)) return id;
+                if (Guid.TryParse(trimmed, out var guid) && idMap.Values.Contains(guid)) return guid;
+                if (labelMap.TryGetValue(trimmed, out var labelId)) return labelId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(rawLabel))
+            {
+                var trimmedLabel = rawLabel.Trim();
+                if (labelMap.TryGetValue(trimmedLabel, out var labelId)) return labelId;
+                if (idMap.TryGetValue(trimmedLabel, out var id)) return id;
+            }
+
+            return Guid.Empty;
+        }
+
+        foreach (var edgeDto in edgeDtos)
+        {
+            var sourceId = ResolveNodeId(edgeDto.SourceNodeId, edgeDto.Source);
+            var targetId = ResolveNodeId(edgeDto.TargetNodeId, edgeDto.Target);
+
+            if (sourceId != Guid.Empty && targetId != Guid.Empty && sourceId != targetId)
+            {
+                blueprint.Edges.Add(new FlowchartEdge
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = sourceId,
+                    TargetNodeId = targetId,
+                    Label = edgeDto.Label,
+                    BlueprintId = blueprint.Id
+                });
+            }
         }
     }
 

@@ -43,7 +43,8 @@ export const setRefreshToken = (token: string | null) => {
 const requestCache = new Map<string, { timestamp: number, data: any }>();
 const inFlightRequests = new Map<string, Promise<any>>();
 
-const CACHE_FRESH_MS = 1000 * 60 * 5; // 5 minutes completely fresh
+// Cache TTL: keep 0 for dynamic database entities like Blueprints so updates sync live
+const CACHE_FRESH_MS = 0; // Fresh by default to ensure real-time sync with database
 const CACHE_STORAGE_PREFIX = 'steepcore_cache_';
 
 function getStoredCache(key: string): { timestamp: number, data: any } | null {
@@ -97,10 +98,11 @@ export function clearApiCache(prefix?: string) {
   }
 }
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(endpoint: string, options: RequestInit & { skipCache?: boolean } = {}): Promise<T> {
   const isGet = !options.method || options.method === 'GET';
+  const shouldSkipCache = options.skipCache || endpoint.includes('/api/Blueprints');
   
-  if (isGet) {
+  if (isGet && !shouldSkipCache) {
     // 1. Check in-memory cache
     const memCached = requestCache.get(endpoint);
     if (memCached) {
@@ -130,7 +132,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     if (inFlightRequests.has(endpoint)) {
       return inFlightRequests.get(endpoint) as Promise<T>;
     }
-  } else {
+  } else if (!isGet) {
     // Mutation: clear related caches
     if (endpoint.includes('/api/Blueprints')) {
       clearApiCache('/api/Blueprints');
@@ -151,11 +153,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     const baseUrlSanitized = BASE_URL.replace(/\/$/, '');
     const endpointSanitized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
-    let url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
-    // Route AI requests to local Express server instead of remote backend
-    if (endpoint.toLowerCase().includes('/api/ai/')) {
-      url = endpointSanitized;
-    }
+    // Always use centralized STEEPCOREAPI (https://steepcoreapi.onrender.com)
+    const url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
 
     try {
       const response = await fetch(url, { ...options, headers });
@@ -228,7 +227,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       
       if (isGet) {
         const isUserPrivateEndpoint = endpoint.includes('/UserProgress') || endpoint.includes('/blueprints/me') || endpoint.includes('/Auth');
-        if (!isUserPrivateEndpoint) {
+        const isDynamicBlueprintEndpoint = endpoint.includes('/api/Blueprints');
+        if (!isUserPrivateEndpoint && !isDynamicBlueprintEndpoint) {
           requestCache.set(endpoint, { timestamp: Date.now(), data });
           setStoredCache(endpoint, data);
         }
@@ -300,7 +300,7 @@ async function refreshTokenApi(): Promise<boolean> {
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
+  get: <T>(endpoint: string, options?: RequestInit & { skipCache?: boolean }) => request<T>(endpoint, { method: 'GET', ...options }),
   post: <T>(endpoint: string, body?: any) => request<T>(endpoint, { method: 'POST', body: JSON.stringify(body) }),
   put: <T>(endpoint: string, body?: any) => request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),

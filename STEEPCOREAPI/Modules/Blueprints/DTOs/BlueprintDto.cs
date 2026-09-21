@@ -71,6 +71,7 @@ public class CreateBlueprintRequestDto
 
 public class CreateNodeRequestDto
 {
+    public string? Id { get; set; }
     public string Label { get; set; } = string.Empty;
     public string Type { get; set; } = "default";
     public double PositionX { get; set; }
@@ -82,8 +83,8 @@ public class CreateNodeRequestDto
 
 public class CreateEdgeRequestDto
 {
-    public Guid SourceNodeId { get; set; } = Guid.Empty;
-    public Guid TargetNodeId { get; set; } = Guid.Empty;
+    public string? SourceNodeId { get; set; }
+    public string? TargetNodeId { get; set; }
     public string Source { get; set; } = string.Empty;
     public string Target { get; set; } = string.Empty;
     public string? Label { get; set; }
@@ -96,4 +97,6 @@ public class UpdateBlueprintRequestDto
     public string? Domain { get; set; }
     public decimal? Price { get; set; }
     public bool? IsPublished { get; set; }
+    public List<CreateNodeRequestDto>? Nodes { get; set; }
+    public List<CreateEdgeRequestDto>? Edges { get; set; }
 }

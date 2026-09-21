@@ -13,29 +13,38 @@ import {
   ReactFlowProvider,
   useReactFlow,
   getNodesBounds,
-  getViewportForBounds
+  getViewportForBounds,
+  MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
   AlertCircle, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
   LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, Menu, 
   Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon,
-  Lock
+  Lock, Network, GitFork, LocateFixed, Eye, EyeOff
 } from 'lucide-react';
 import { EditableNode, cn } from './EditableNode';
-import { getLayoutedElements, ensureConnectedEdges } from '../lib/flow';
+import { getLayoutedElements, ensureConnectedEdges, ensureSingleStartingPoint } from '../lib/flow';
 import { api } from '../services/api';
 import { apiClient } from '../services/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useUIStore } from '../store/useUIStore';
-import { useToast } from './Toast';
+import { useToast, formatErrorMessage } from './Toast';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 
 const nodeTypes = {
   editable: EditableNode,
 };
+
+const LOADING_STEPS = [
+  { stage: 'Analyzing skill domain & competencies...', detail: 'Deconstructing core principles & prerequisite milestones' },
+  { stage: 'Synthesizing structured learning phases...', detail: 'Sequencing curriculum from beginner foundations to mastery' },
+  { stage: 'Connecting prerequisite dependency vectors...', detail: 'Linking topics with clear, structured branch relationships' },
+  { stage: 'Optimizing roadmap layout geometry...', detail: 'Balancing node spacing and symmetrical tree alignments' },
+  { stage: 'Finalizing interactive roadmap canvas...', detail: 'Rendering nodes and centering diagram in workspace' },
+];
 
 interface RoadmapWorkspaceProps {
   initialRole?: string;
@@ -53,6 +62,7 @@ function WorkspaceCore({ initialRole, initialBlueprintId, onBack }: RoadmapWorks
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentBlueprintId, setCurrentBlueprintId] = useState<string | undefined>(initialBlueprintId);
   
@@ -216,7 +226,17 @@ const openSaveModal = () => {
     setIsSaveModalOpen(true);
   };
 
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep', animated: true }, eds)), [setEdges]);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ 
+    ...params, 
+    type: 'smoothstep', 
+    animated: true,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 14,
+      height: 14,
+      color: '#388bfd',
+    },
+  } as any, eds)), [setEdges]);
 
   const hasGeneratedRef = useRef(false);
 
@@ -228,6 +248,18 @@ const openSaveModal = () => {
       loadBlueprint(initialBlueprintId);
     }
   }, [initialRole, initialBlueprintId]);
+
+  // Cycle loading status steps when generating or loading roadmaps
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingStepIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingStepIndex((prev) => (prev + 1) % LOADING_STEPS.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // Immediately remove completed node indicators if user logs out
   useEffect(() => {
@@ -287,35 +319,20 @@ const openSaveModal = () => {
           });
           
           const bpEdges = (bp as any).edges || [];
-          const initialEdges: Edge[] = bpEdges.map((e: any, idx: number) => ({
-            id: String(e.id || `edge-${idx}`),
-            source: String(e.sourceNodeId || e.source),
-            target: String(e.targetNodeId || e.target),
-            label: e.label || '',
-            type: 'smoothstep',
-            animated: true
-          })).filter((e: Edge) => e.source && e.target && e.source !== e.target);
-
-          // Guarantee all nodes have proper hierarchical connections and a solid root base
-          const connectedEdges = ensureConnectedEdges(initialNodes, initialEdges);
-
-          // Check if coordinates need clean tree layout (e.g. stacked in a thin column or all at 0)
-          const xs = initialNodes.map(n => n.position.x);
-          const xSpan = xs.length > 1 ? Math.max(...xs) - Math.min(...xs) : 0;
-          const shouldAutoLayout = xSpan < 160 || initialNodes.some(n => n.position.x === 0 && n.position.y === 0);
-
-          if (shouldAutoLayout || connectedEdges.length !== initialEdges.length) {
-            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(initialNodes, connectedEdges, 'TB');
-            setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
-          } else {
-            setNodes(initialNodes);
-            setEdges(connectedEdges);
-          }
+          // Guarantee single starting point and that all nodes have valid relationships
+          const { nodes: unifiedNodes, edges: unifiedEdges } = ensureSingleStartingPoint(initialNodes, bpEdges, bp.title || initialRole || 'Career Pathway');
+          const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(unifiedNodes, unifiedEdges, 'TB');
+          setNodes(layoutedNodes);
+          setEdges(layoutedEdges);
 
           setTimeout(() => {
             if (reactFlowInstance) {
-              reactFlowInstance.fitView({ padding: 0.25, duration: 600 });
+              const startNode = layoutedNodes.find(n => n.id === 'root' || n.id === 'root-start' || n.data?.type === 'role');
+              if (startNode && layoutedNodes.length > 15) {
+                reactFlowInstance.setCenter(startNode.position.x + 140, startNode.position.y + 60, { zoom: 0.95, duration: 800 });
+              } else {
+                reactFlowInstance.fitView({ padding: 0.25, duration: 600 });
+              }
             }
           }, 150);
       }
@@ -332,9 +349,17 @@ const openSaveModal = () => {
     setNodes([]);
     setEdges([]);
     setSelectedNode(null);
+    setSavePrice(0);
     try {
       const aiData = await api.generateAiBlueprint({ prompt });
       if (aiData && Array.isArray(aiData.nodes) && aiData.nodes.length > 0) {
+        if (aiData.title) {
+          setSaveTitle(aiData.title);
+        }
+        if (aiData.description) {
+          setSaveDesc(aiData.description);
+        }
+        setSavePrice(aiData.price !== undefined ? aiData.price : 0);
         const formattedNodes: Node[] = aiData.nodes.map((n: any, idx: number) => ({
           id: String(n.id || `node-${idx}`),
           type: 'editable',
@@ -345,26 +370,23 @@ const openSaveModal = () => {
           },
           position: n.coordinates || (n.positionX !== undefined && n.positionY !== undefined && (n.positionX !== 0 || n.positionY !== 0) ? { x: n.positionX, y: n.positionY } : { x: (idx % 3) * 240 + 50, y: Math.floor(idx / 3) * 160 + 50 }),
         }));
-        const formattedEdges: Edge[] = (aiData.edges || []).map((e: any, idx: number) => ({
-          id: String(e.id || `edge-${idx}`),
-          source: String(e.source || e.sourceNodeId || formattedNodes[Math.max(0, idx - 1)]?.id),
-          target: String(e.target || e.targetNodeId || formattedNodes[idx]?.id),
-          label: e.label || e.relationshipLabel,
-          type: 'smoothstep',
-          animated: true,
-        }));
         
-        const edgesToUse = formattedEdges.length > 0 ? formattedEdges : formattedNodes.slice(1).map((n, i) => ({
-          id: `e-${formattedNodes[i].id}-${n.id}`,
-          source: formattedNodes[i].id,
-          target: n.id,
-          type: 'smoothstep',
-          animated: true
-        }));
-        
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(formattedNodes, edgesToUse, 'TB');
+        // Guarantee single starting point and that all nodes have valid relationships
+        const { nodes: unifiedNodes, edges: unifiedEdges } = ensureSingleStartingPoint(formattedNodes, aiData.edges || [], aiData.title || prompt);
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(unifiedNodes, unifiedEdges, 'TB');
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
+
+        setTimeout(() => {
+          if (reactFlowInstance) {
+            const startNode = layoutedNodes.find(n => n.id === 'root' || n.id === 'root-start' || n.data?.type === 'role');
+            if (startNode && layoutedNodes.length > 15) {
+              reactFlowInstance.setCenter(startNode.position.x + 140, startNode.position.y + 60, { zoom: 0.95, duration: 800 });
+            } else {
+              reactFlowInstance.fitView({ padding: 0.25, duration: 800 });
+            }
+          }
+        }, 150);
       }
     } catch (err: any) {
       console.error(err);
@@ -513,14 +535,55 @@ const openSaveModal = () => {
     }
   };
 
-  const onLayout = useCallback(() => {
-    const connectedEdges = ensureConnectedEdges(nodes, edges);
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, connectedEdges, 'TB');
+  const [layoutDirection, setLayoutDirection] = useState<'TB' | 'LR'>('TB');
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
+
+  const focusStartNode = useCallback(() => {
+    if (!reactFlowInstance) return;
+    const currentNodes = reactFlowInstance.getNodes();
+    if (currentNodes.length === 0) return;
+    const startNode = currentNodes.find(n => n.id === 'root' || n.id === 'root-start' || n.data?.type === 'role') || currentNodes[0];
+    if (startNode) {
+      const nodeX = startNode.position.x + 140;
+      const nodeY = startNode.position.y + 60;
+      reactFlowInstance.setCenter(nodeX, nodeY, { zoom: 0.95, duration: 800 });
+      showSuccess("Centered on Starting Point");
+    } else {
+      reactFlowInstance.fitView({ padding: 0.2, duration: 600 });
+    }
+  }, [reactFlowInstance, showSuccess]);
+
+  const toggleEdgeLabels = useCallback(() => {
+    setShowEdgeLabels(prev => {
+      const nextVal = !prev;
+      setEdges(eds => eds.map(e => ({
+        ...e,
+        label: nextVal ? ((e.data?.originalLabel as string) || (e.label as string) || '') : '',
+        data: { ...e.data, originalLabel: (e.data?.originalLabel as string) || (e.label as string) || '' }
+      })));
+      showSuccess(nextVal ? "Relationship labels visible" : "Clean view (labels hidden)");
+      return nextVal;
+    });
+  }, [setEdges, showSuccess]);
+
+  const onLayout = useCallback((dir?: 'TB' | 'LR') => {
+    const targetDir = dir || layoutDirection;
+    if (dir && dir !== layoutDirection) {
+      setLayoutDirection(dir);
+    }
+    const { nodes: unifiedNodes, edges: unifiedEdges } = ensureSingleStartingPoint(nodes, edges, saveTitle || initialRole);
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(unifiedNodes, unifiedEdges, targetDir);
     setNodes([...layoutedNodes]);
     setEdges([...layoutedEdges]);
-    setTimeout(() => reactFlowInstance.fitView({ duration: 600, padding: 0.2 }), 50);
-    showSuccess("Nodes organized into clean connected hierarchy");
-  }, [nodes, edges, setNodes, setEdges, reactFlowInstance]);
+    setTimeout(() => {
+      if (layoutedNodes.length > 15) {
+        focusStartNode();
+      } else {
+        reactFlowInstance?.fitView({ duration: 600, padding: 0.2 });
+      }
+    }, 50);
+    showSuccess(targetDir === 'TB' ? "Tree layout (Top-Down hierarchy) applied" : "Tree layout (Horizontal mindmap) applied");
+  }, [nodes, edges, layoutDirection, saveTitle, initialRole, focusStartNode, setNodes, setEdges, reactFlowInstance, showSuccess]);
 
   return (
     <div className="flex flex-col h-screen w-full bg-canvas-default text-fg-default font-sans overflow-hidden">
@@ -541,10 +604,65 @@ const openSaveModal = () => {
         </div>
         
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Focus Start Button */}
+          <button
+            onClick={focusStartNode}
+            title="Focus and Center on the Starting Point"
+            className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs font-semibold bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 text-sky-300 rounded-md transition-colors"
+          >
+            <LocateFixed className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Focus Start</span>
+          </button>
+
+          {/* Tree Layout Selector */}
+          <div className="flex items-center bg-canvas-inset border border-border-default rounded-md p-0.5">
+            <button
+              onClick={() => onLayout('TB')}
+              title="Top-Down Tree Hierarchy"
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
+                layoutDirection === 'TB' 
+                  ? "bg-canvas-default text-action-accent shadow-xs border border-border-default" 
+                  : "text-fg-muted hover:text-fg-default"
+              )}
+            >
+              <Network className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Top-Down</span>
+            </button>
+            <button
+              onClick={() => onLayout('LR')}
+              title="Horizontal Tree Hierarchy"
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
+                layoutDirection === 'LR' 
+                  ? "bg-canvas-default text-action-accent shadow-xs border border-border-default" 
+                  : "text-fg-muted hover:text-fg-default"
+              )}
+            >
+              <GitFork className="w-3.5 h-3.5 rotate-90" />
+              <span className="hidden md:inline">Left-Right</span>
+            </button>
+          </div>
+
+          {/* Toggle Edge Labels */}
+          <button
+            onClick={toggleEdgeLabels}
+            title={showEdgeLabels ? "Hide edge relationship labels" : "Show edge relationship labels"}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-md border transition-colors",
+              showEdgeLabels 
+                ? "bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default" 
+                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+            )}
+          >
+            {showEdgeLabels ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">{showEdgeLabels ? "Labels: On" : "Labels: Off"}</span>
+          </button>
+
           <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
             <Download className="w-4 h-4" /> <span className="hidden sm:inline">Download PDF</span></button>
-          <button onClick={onLayout} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
-            <Grid className="w-4 h-4" /> <span className="hidden sm:inline">Layout</span></button>
+          <button onClick={() => onLayout(layoutDirection)} title="Re-organize Tree Layout" className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
+            <Grid className="w-4 h-4" /> <span className="hidden sm:inline">Auto-Align</span></button>
           <button onClick={openSaveModal} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors">
             <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save</span></button>
         </div>
@@ -655,14 +773,43 @@ const openSaveModal = () => {
         {/* Center Canvas */}
         <div className="flex-1 relative bg-[#0d1117]">
           {isLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas-default/80 backdrop-blur-md transition-all duration-300">
-              <div className="bg-canvas-surface border border-border-default rounded-xl shadow-2xl p-6 flex flex-col items-center justify-center text-center relative max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-300">
-                <div className="absolute inset-0 bg-action-primary/5 blur-3xl rounded-full"></div>
-                <img src="/loader.svg" alt="Loading" className="w-12 h-12 animate-spin mb-4 object-contain drop-shadow-md z-10" />
-                <p className="text-fg-muted text-sm font-medium flex items-center gap-2 z-10 bg-canvas-inset px-4 py-1.5 rounded-full border border-border-default">
-                  <span className="inline-block w-2 h-2 rounded-full bg-action-primary animate-pulse shadow-[0_0_8px_rgba(35,134,54,0.6)]"></span>
-                  Generating vectors...
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0d1117]/80 backdrop-blur-sm transition-all duration-300">
+              <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl p-7 flex flex-col items-center justify-center text-center relative max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+                
+                {/* Custom Generated Animated Loader */}
+                <div className="relative mb-5 flex items-center justify-center">
+                  <img 
+                    src="/loader.svg" 
+                    alt="Loading" 
+                    className="w-16 h-16 object-contain drop-shadow-md select-none pointer-events-none" 
+                  />
+                </div>
+
+                {/* Rotating Title */}
+                <h4 key={`stage-${loadingStepIndex}`} className="text-[#e6edf3] text-sm font-semibold tracking-tight min-h-[1.5rem] flex items-center justify-center animate-in fade-in duration-300">
+                  {LOADING_STEPS[loadingStepIndex].stage}
+                </h4>
+                
+                {/* Rotating Subtitle / Detail */}
+                <p key={`detail-${loadingStepIndex}`} className="text-[#8b949e] text-xs mt-1.5 mb-5 min-h-[1.25rem] leading-relaxed max-w-xs animate-in fade-in duration-300">
+                  {LOADING_STEPS[loadingStepIndex].detail}
                 </p>
+
+                {/* Simple Professional Step Dots */}
+                <div className="flex items-center justify-center gap-1.5">
+                  {LOADING_STEPS.map((_, idx) => (
+                    <span
+                      key={idx}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        idx === loadingStepIndex
+                          ? 'w-4 bg-[#58a6ff]'
+                          : idx < loadingStepIndex
+                          ? 'w-1.5 bg-[#388bfd]/50'
+                          : 'w-1.5 bg-[#30363d]'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -682,6 +829,21 @@ const openSaveModal = () => {
             onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
             fitView
+            fitViewOptions={{
+              padding: 0.2,
+              duration: 800
+            }}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: true,
+              style: { stroke: '#388bfd', strokeWidth: 2 },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 14,
+                height: 14,
+                color: '#388bfd',
+              },
+            }}
             className="roadmap-flow"
             minZoom={0.1}
             maxZoom={2}
@@ -778,14 +940,7 @@ const openSaveModal = () => {
         <div className="absolute top-4 right-4 z-50 bg-[#161b22] border border-[#f85149]/40 px-3.5 py-2 rounded-lg shadow-xl flex items-center gap-2.5 max-w-sm animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-[#f85149]" />
           <span className="flex-1 text-xs font-medium text-[#e6edf3] leading-snug">
-            {(() => {
-              try {
-                const parsed = JSON.parse(errorMsg);
-                if (parsed.error && parsed.error.message) return parsed.error.message;
-                if (parsed.message) return parsed.message;
-              } catch (e) {}
-              return errorMsg;
-            })()}
+            {formatErrorMessage(errorMsg)}
           </span>
           <button 
             onClick={() => setErrorMsg(null)} 

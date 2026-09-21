@@ -24,27 +24,34 @@ export function formatErrorMessage(rawMessage: any): string {
       const parsed = JSON.parse(rawMessage);
       if (parsed.error?.message) return formatErrorMessage(parsed.error.message);
       if (parsed.message) return formatErrorMessage(parsed.message);
+      if (typeof parsed.error === 'string') return formatErrorMessage(parsed.error);
     } catch {}
 
     const lower = rawMessage.toLowerCase();
-    if (lower.includes('quota') || lower.includes('429') || lower.includes('rate limit')) {
-      return 'AI generation limit reached. Please try again in a few moments.';
+    if (lower.includes('quota') || lower.includes('429') || lower.includes('rate limit') || lower.includes('resource_exhausted')) {
+      return 'Free AI generation quota reached. Using offline roadmap engine.';
     }
-    if (lower.includes('network') || lower.includes('failed to fetch')) {
-      return 'Unable to reach the server. Please check your connection.';
+    if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('econnrefused')) {
+      return 'Network connection issue. Please retry.';
     }
     if (lower.includes('popup-closed')) {
       return 'Sign-in cancelled. Popup closed.';
     }
     if (lower.includes('popup-blocked')) {
-      return 'Popups blocked by browser. Please allow popups to sign in.';
+      return 'Popup blocked. Please allow browser popups.';
     }
     if (lower.includes('unauthorized') || lower.includes('401')) {
       return 'Session expired. Please sign in to continue.';
     }
-    // Trim excessively long technical stack traces
-    if (rawMessage.length > 90) {
-      return rawMessage.slice(0, 85) + '...';
+    if (lower.includes('forbidden') || lower.includes('403')) {
+      return 'Access denied. Please check permissions.';
+    }
+    if (lower.includes('not found') || lower.includes('404')) {
+      return 'Resource not found.';
+    }
+    // Trim excessively long technical stack traces or errors
+    if (rawMessage.length > 70) {
+      return rawMessage.slice(0, 65) + '...';
     }
     return rawMessage;
   }
