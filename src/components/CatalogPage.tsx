@@ -383,8 +383,8 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
         {isMobileFiltersOpen && (
           <div className="md:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" onClick={() => setIsMobileFiltersOpen(false)}></div>
         )}
-        <aside className={`fixed md:relative inset-x-0 bottom-0 top-1/4 md:inset-auto z-50 transform ${isMobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'} md:translate-y-0 transition-transform duration-300 md:flex flex-col shrink-0 md:border-r border-t md:border-t-0 border-border-default bg-canvas-default w-full md:w-[clamp(220px,18vw,300px)] rounded-t-2xl md:rounded-none overflow-y-auto custom-scrollbar`}>
-          <div className="p-4 border-b border-border-default flex items-center justify-between md:block">
+        <aside className={`fixed md:relative inset-x-0 bottom-0 top-1/4 md:inset-auto z-40 md:z-10 transform ${isMobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'} md:translate-y-0 transition-transform duration-300 md:flex flex-col shrink-0 md:border-r border-t md:border-t-0 border-border-default bg-canvas-default w-full md:w-[clamp(220px,18vw,300px)] rounded-t-2xl md:rounded-none overflow-y-auto custom-scrollbar`}>
+          <div className="h-12 px-4 border-b border-border-default flex items-center justify-between pl-14 sm:pl-16">
             <h2 className="text-sm font-semibold text-fg-default">Filters</h2>
             <button className="md:hidden text-fg-muted hover:text-fg-default transition-colors p-1" onClick={() => setIsMobileFiltersOpen(false)}>✕</button>
           </div>
@@ -522,7 +522,7 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
       {/* Main Content Canvas */}
       <main className="flex-1 bg-canvas-default overflow-y-auto custom-scrollbar flex flex-col">
         {/* Top Header & Breadcrumbs */}
-        <div className="px-4 sm:px-6 py-4 border-b border-border-default bg-canvas-default sticky top-0 z-30">
+        <div className="pl-14 sm:pl-16 md:px-6 py-4 border-b border-border-default bg-canvas-default sticky top-0 z-30">
           <div className="flex flex-wrap items-center justify-between gap-4 gap-y-3">
             <div className="shrink-0">
               <div className="flex items-center gap-2 text-sm text-fg-muted mb-1">

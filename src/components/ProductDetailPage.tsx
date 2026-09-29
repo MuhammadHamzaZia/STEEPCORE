@@ -115,7 +115,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
   return (
     <div className="flex-1 w-full flex flex-col bg-canvas-default overflow-y-auto">
       {/* Breadcrumb Top Bar */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border-default bg-canvas-default sticky top-0 z-20">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border-default bg-canvas-default sticky top-0 z-20 pl-14 sm:pl-16">
         <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-fg-muted max-w-6xl mx-auto w-full overflow-x-auto custom-scrollbar pb-1 sm:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button 
             onClick={() => {

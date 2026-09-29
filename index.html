@@ -9,7 +9,7 @@
     <meta name="title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
     <meta
       name="description"
-      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+      content="Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI."
     />
     <meta
       name="keywords"
@@ -19,6 +19,7 @@
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" id="canonical-url" href="/" />
 
     <!-- OpenGraph / Facebook / WhatsApp / LinkedIn -->
     <meta property="og:type" content="website" />
@@ -26,8 +27,9 @@
     <meta property="og:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
     <meta
       property="og:description"
-      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+      content="Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI."
     />
+    <meta property="og:url" content="/" />
     <meta property="og:image" content="/steepcore.png" />
     <meta property="og:image:secure_url" content="/steepcore.png" />
     <meta property="og:image:type" content="image/png" />
@@ -41,7 +43,7 @@
     <meta name="twitter:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
     <meta
       name="twitter:description"
-      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+      content="Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI."
     />
     <meta name="twitter:image" content="/steepcore.png" />
     <meta name="twitter:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
@@ -50,6 +52,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/steepcore.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/steepcore.png" />
+    <link rel="manifest" href="/manifest.json" />
     <link rel="image_src" href="/steepcore.png" />
 
     <!-- Mobile & PWA Experience -->
@@ -66,7 +69,7 @@
       "name": "STEEPCORE",
       "applicationCategory": "EducationalApplication",
       "operatingSystem": "All",
-      "description": "Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI.",
+      "description": "Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI.",
       "image": "/steepcore.png",
       "offers": {
         "@type": "Offer",
@@ -92,12 +95,14 @@
           var ogImgSec = document.querySelector('meta[property="og:image:secure_url"]');
           var twImg = document.querySelector('meta[name="twitter:image"]');
           var ogUrl = document.querySelector('meta[property="og:url"]');
+          var canonical = document.getElementById('canonical-url');
           var fullImg = origin + '/steepcore.png';
           var fullUrl = origin + window.location.pathname;
           if (ogImg) ogImg.setAttribute('content', fullImg);
           if (ogImgSec) ogImgSec.setAttribute('content', fullImg);
           if (twImg) twImg.setAttribute('content', fullImg);
           if (ogUrl) ogUrl.setAttribute('content', fullUrl);
+          if (canonical) canonical.setAttribute('href', fullUrl);
         } catch (e) {}
       })();
     </script>

@@ -116,6 +116,9 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
     <div className="flex-1 w-full flex overflow-hidden h-[calc(100vh-56px)] relative">
       {/* Sidebar Nav (Desktop only) */}
       <aside className="hidden md:flex flex-col shrink-0 border-r border-border-default bg-canvas-default w-[clamp(200px,16vw,260px)]">
+         <div className="h-12 px-4 border-b border-border-default flex items-center pl-14 sm:pl-16 text-xs font-semibold text-fg-muted uppercase tracking-wider">
+           Dashboard
+         </div>
          <nav className="p-4 space-y-1">
            {TABS.map(tab => (
              <button

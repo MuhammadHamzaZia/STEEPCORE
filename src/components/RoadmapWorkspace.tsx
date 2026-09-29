@@ -594,14 +594,11 @@ const openSaveModal = () => {
   }, [nodes, edges, layoutDirection, saveTitle, initialRole, focusStartNode, setNodes, setEdges, reactFlowInstance, showSuccess]);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-canvas-default text-fg-default font-sans overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-canvas-default text-fg-default font-sans overflow-hidden">
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-3 sm:px-4 z-50 flex-nowrap">
+      <div className="h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-3 sm:px-4 z-30 flex-nowrap pl-14 sm:pl-16">
         <div className="flex items-center gap-1 sm:gap-3">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
-            <Menu className="w-5 h-5" />
-          </button>
-          <button onClick={onBack} className="p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
+          <button onClick={onBack} title="Back" className="p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="h-4 w-px bg-border-default mx-1"></div>
@@ -673,6 +670,14 @@ const openSaveModal = () => {
             <Grid className="w-4 h-4" /> <span className="hidden sm:inline">Auto-Align</span></button>
           <button onClick={openSaveModal} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors">
             <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save</span></button>
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            title="Toggle Tools & AI Chat"
+            className="md:hidden flex items-center gap-1 px-2 py-1.5 text-xs bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-action-accent" />
+            <span>AI Chat</span>
+          </button>
         </div>
       </div>
 

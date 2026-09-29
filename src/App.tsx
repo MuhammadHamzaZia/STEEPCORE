@@ -51,15 +51,6 @@ export default function App() {
     handleNavigate('landing');
   };
 
-  if (currentPage === 'editor') {
-    return (
-      <ToastProvider>
-        <RoadmapWorkspace initialBlueprintId={selectedBlueprintId || undefined} onBack={() => handleNavigate('product')} />
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      </ToastProvider>
-    );
-  }
-
   return (
     <ToastProvider>
       <Layout onNavigate={handleNavigate} currentPage={currentPage}>
@@ -89,6 +80,9 @@ export default function App() {
         {currentPage === 'roadmap' && selectedRole && (
           <RoadmapWorkspace initialRole={selectedRole} onBack={handleBackToLanding} />
         )}
+        {currentPage === 'editor' && (
+          <RoadmapWorkspace initialBlueprintId={selectedBlueprintId || undefined} onBack={() => handleNavigate('product')} />
+        )}
         {currentPage === 'product' && (
           <ProductDetailPage onNavigateToEditor={() => handleNavigate('editor')} onNavigateToCatalog={() => handleNavigate('catalog')} />
         )}
@@ -99,6 +93,7 @@ export default function App() {
           />
         )}
       </Layout>
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       {/* AI Smart Resolution Modal */}
       {isAiLoading && (

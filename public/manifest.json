@@ -1,0 +1,24 @@
+{
+  "short_name": "STEEPCORE",
+  "name": "STEEPCORE – Interactive Career & Skill Roadmaps",
+  "description": "Generates comprehensive career roadmaps for any job role as interactive flowcharts.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/steepcore.png",
+      "type": "image/png",
+      "sizes": "650x243",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d1117",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity", "utilities"]
+}

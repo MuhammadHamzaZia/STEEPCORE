@@ -189,16 +189,16 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
-          title="Open Sidebar Menu (=>)"
-          aria-label="Open Sidebar Menu"
-          className="fixed top-[62px] left-3 z-30 group flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161b22]/95 hover:bg-[#21262d] active:scale-95 backdrop-blur-md border border-[#30363d] hover:border-[#58a6ff]/70 text-[#c9d1d9] hover:text-[#ffffff] rounded-lg shadow-lg hover:shadow-[#58a6ff]/20 transition-all duration-200 cursor-pointer select-none"
+          title="Open Sidebar"
+          aria-label="Open Sidebar"
+          className="fixed top-[62px] left-3 sm:left-4 z-[100] p-2 bg-canvas-surface hover:bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default transition-colors flex items-center justify-center cursor-pointer select-none active:scale-95 shadow-sm"
         >
-          <span className="font-mono text-xs font-bold text-[#58a6ff] group-hover:translate-x-0.5 transition-transform flex items-center tracking-tight">
-            =&gt;
-          </span>
-          <span className="text-[11px] font-semibold text-[#7d8590] group-hover:text-[#e6edf3] tracking-wider uppercase hidden sm:inline">
-            Sidebar
-          </span>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="14" y2="12" />
+            <polyline points="14 9 17 12 14 15" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
         </button>
       )}
 
