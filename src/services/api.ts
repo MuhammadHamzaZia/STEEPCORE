@@ -1,5 +1,6 @@
 import { Blueprint, FlowchartNode, UserProgress, User, Transaction } from '../types/schema';
 import { apiClient } from './apiClient';
+import { synthesizeRoadmapBlueprint } from './roadmapSynthesizer';
 
 
 const _FALLBACK_PROMPTS = [
@@ -299,14 +300,62 @@ export const api = {
   async generateAiBlueprint(params: { prompt: string }) {
     try {
       const res = await apiClient.post<any>(`/api/Ai/generate?_t=${Date.now()}`, { prompt: params.prompt });
-      if (res) {
+      if (res && Array.isArray(res.nodes) && res.nodes.length > 0) {
         res.price = 0;
+        return res;
       }
-      return res;
     } catch (error: any) {
-      console.warn('Live AI endpoint returned error or unavailable:', error);
-      throw error;
+      console.warn('Live AI endpoint returned error, checking STEEPCOREAPI published repository:', error?.message || error);
     }
+
+    // Fallback: check if STEEPCOREAPI already has published blueprints matching this role/topic
+    try {
+      const cleanPrompt = (params.prompt || '').toLowerCase().trim();
+      const stopWords = new Set(['i', 'want', 'to', 'be', 'an', 'a', 'become', 'learning', 'path', 'roadmap', 'for', 'guide', 'how', 'the', 'of', 'in', 'and']);
+      const queryWords = cleanPrompt.replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+
+      const published = await api.getBlueprints(1, 30);
+      if (Array.isArray(published) && published.length > 0) {
+        const match = published.find(bp => {
+          const title = (bp.title || '').toLowerCase();
+          const desc = (bp.description || '').toLowerCase();
+          const domain = (bp.domain || '').toLowerCase();
+          return queryWords.some(w => title.includes(w) || domain.includes(w) || desc.includes(w));
+        });
+
+        if (match && match.id) {
+          const detail: any = await api.getBlueprintById(match.id);
+          if (detail && Array.isArray(detail.nodes) && detail.nodes.length > 0) {
+            return {
+              title: detail.title,
+              description: detail.description,
+              domain: detail.domain,
+              price: 0,
+              nodes: detail.nodes.map((n: any) => ({
+                id: String(n.id),
+                title: n.label || n.title || 'Step',
+                description: n.description || '',
+                type: n.type || 'topic',
+                positionX: n.positionX,
+                positionY: n.positionY
+              })),
+              edges: (detail.edges || []).map((e: any) => ({
+                id: String(e.id),
+                source: String(e.sourceNodeId || e.source),
+                target: String(e.targetNodeId || e.target),
+                label: e.label || ''
+              }))
+            };
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('STEEPCOREAPI published library search skipped:', dbErr);
+    }
+
+    // High availability client-side fallback synthesis
+    console.log('Using client fallback roadmap synthesizer for:', params.prompt);
+    return synthesizeRoadmapBlueprint(params.prompt);
   },
 
   // CRUD Blueprints

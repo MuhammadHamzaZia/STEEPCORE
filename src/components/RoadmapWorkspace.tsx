@@ -391,11 +391,17 @@ const openSaveModal = () => {
     } catch (err: any) {
       console.error(err);
       const msg = err?.message || 'An error occurred while generating the roadmap.';
-      if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) {
-        setErrorMsg('The AI free generation quota has been exceeded. Please try again later.');
-      } else {
-        setErrorMsg(msg);
+      let friendlyMsg = 'The AI service is currently busy. Please try again.';
+      if (typeof msg === 'string') {
+        if (msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('overloaded') || msg.includes('GoogleGenerativeAI')) {
+          friendlyMsg = 'The AI service is currently experiencing high demand. Please click generate to retry.';
+        } else if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) {
+          friendlyMsg = 'The AI free generation quota has been exceeded. Please try again later.';
+        } else {
+          friendlyMsg = msg;
+        }
       }
+      setErrorMsg(friendlyMsg);
       setTimeout(() => setErrorMsg(null), 5000);
     } finally {
       setIsLoading(false);
@@ -556,12 +562,14 @@ const openSaveModal = () => {
   const toggleEdgeLabels = useCallback(() => {
     setShowEdgeLabels(prev => {
       const nextVal = !prev;
-      setEdges(eds => eds.map(e => ({
-        ...e,
-        label: nextVal ? ((e.data?.originalLabel as string) || (e.label as string) || '') : '',
-        data: { ...e.data, originalLabel: (e.data?.originalLabel as string) || (e.label as string) || '' }
-      })));
-      showSuccess(nextVal ? "Relationship labels visible" : "Clean view (labels hidden)");
+      setTimeout(() => {
+        setEdges(eds => eds.map(e => ({
+          ...e,
+          label: nextVal ? ((e.data?.originalLabel as string) || (e.label as string) || '') : '',
+          data: { ...e.data, originalLabel: (e.data?.originalLabel as string) || (e.label as string) || '' }
+        })));
+        showSuccess(nextVal ? "Relationship labels visible" : "Clean view (labels hidden)");
+      }, 0);
       return nextVal;
     });
   }, [setEdges, showSuccess]);
@@ -813,6 +821,41 @@ const openSaveModal = () => {
               </div>
             </div>
           )}
+          {!isLoading && nodes.length === 0 && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none p-4">
+              <div className="bg-[#161b22]/95 border border-[#30363d] rounded-xl p-7 max-w-sm w-full text-center pointer-events-auto shadow-2xl backdrop-blur-md animate-in fade-in duration-200">
+                <div className="w-12 h-12 rounded-full bg-[#1f6feb]/15 border border-[#388bfd]/30 text-[#58a6ff] flex items-center justify-center mx-auto mb-3.5">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 className="text-sm font-semibold text-[#e6edf3] mb-1.5">
+                  {initialRole ? `Roadmap: ${initialRole}` : 'No Roadmap Loaded'}
+                </h3>
+                <p className="text-xs text-[#8b949e] mb-5 leading-relaxed">
+                  {errorMsg 
+                    ? formatErrorMessage(errorMsg)
+                    : 'Click retry below to generate the structured learning roadmap with AI.'}
+                </p>
+                <div className="flex items-center justify-center gap-2.5">
+                  {(initialRole || saveTitle) && (
+                    <button
+                      onClick={() => generateRoadmap(initialRole || saveTitle)}
+                      className="px-3.5 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium rounded-md shadow-sm transition-all"
+                    >
+                      Retry Generation
+                    </button>
+                  )}
+                  {onBack && (
+                    <button
+                      onClick={onBack}
+                      className="px-3.5 py-1.5 bg-[#21262d] hover:bg-[#30363d] text-[#e6edf3] text-xs font-medium rounded-md border border-[#30363d] transition-all"
+                    >
+                      Back
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <ReactFlow
             proOptions={{ hideAttribution: true }}
             nodes={nodes.map(n => ({
@@ -937,11 +980,22 @@ const openSaveModal = () => {
       </div>
 
       {errorMsg && (
-        <div className="absolute top-4 right-4 z-50 bg-[#161b22] border border-[#f85149]/40 px-3.5 py-2 rounded-lg shadow-xl flex items-center gap-2.5 max-w-sm animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-4 right-4 z-50 bg-[#161b22] border border-[#f85149]/40 px-3.5 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 max-w-md animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-[#f85149]" />
           <span className="flex-1 text-xs font-medium text-[#e6edf3] leading-snug">
             {formatErrorMessage(errorMsg)}
           </span>
+          {(initialRole || saveTitle) && (
+            <button
+              onClick={() => {
+                setErrorMsg(null);
+                generateRoadmap(initialRole || saveTitle);
+              }}
+              className="px-2.5 py-1 text-xs font-medium bg-[#238636] hover:bg-[#2ea043] text-white rounded transition-colors shrink-0"
+            >
+              Retry
+            </button>
+          )}
           <button 
             onClick={() => setErrorMsg(null)} 
             className="shrink-0 text-[#7d8590] hover:text-[#e6edf3] p-1 rounded hover:bg-[#21262d] transition-colors"

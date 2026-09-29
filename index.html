@@ -2,9 +2,105 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Primary Page Title & SEO Meta -->
+    <title>STEEPCORE – Interactive Career & Skill Roadmaps</title>
+    <meta name="title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta
+      name="description"
+      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+    />
+    <meta
+      name="keywords"
+      content="STEEPCORE, career roadmap, developer roadmap, learning path, interactive flowchart, skill tree, AI learning roadmap, tech skills, software engineer roadmap"
+    />
+    <meta name="author" content="STEEPCORE" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- OpenGraph / Facebook / WhatsApp / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="STEEPCORE" />
+    <meta property="og:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta
+      property="og:description"
+      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+    />
+    <meta property="og:image" content="/steepcore.png" />
+    <meta property="og:image:secure_url" content="/steepcore.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="650" />
+    <meta property="og:image:height" content="243" />
+    <meta property="og:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta
+      name="twitter:description"
+      content="Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI."
+    />
+    <meta name="twitter:image" content="/steepcore.png" />
+    <meta name="twitter:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+
+    <!-- Icons & Manifest -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/steepcore.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>STEEPCORE</title>
+    <link rel="apple-touch-icon" href="/steepcore.png" />
+    <link rel="image_src" href="/steepcore.png" />
+
+    <!-- Mobile & PWA Experience -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="STEEPCORE" />
+
+    <!-- Schema.org JSON-LD Structured Data for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "STEEPCORE",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All",
+      "description": "Generates a comprehensive learning roadmap for any job role as an interactive flowchart. Explore curated blueprints, track milestones, and master skills with AI.",
+      "image": "/steepcore.png",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Interactive Flowchart Roadmaps",
+        "AI-Powered Learning Path Generation",
+        "Role & Technology Blueprints",
+        "Milestone & Progress Tracking",
+        "PDF Export & Custom Nodes"
+      ]
+    }
+    </script>
+
+    <!-- Dynamic URL resolution for client-side previews -->
+    <script>
+      (function() {
+        try {
+          var origin = window.location.origin;
+          var ogImg = document.querySelector('meta[property="og:image"]');
+          var ogImgSec = document.querySelector('meta[property="og:image:secure_url"]');
+          var twImg = document.querySelector('meta[name="twitter:image"]');
+          var ogUrl = document.querySelector('meta[property="og:url"]');
+          var fullImg = origin + '/steepcore.png';
+          var fullUrl = origin + window.location.pathname;
+          if (ogImg) ogImg.setAttribute('content', fullImg);
+          if (ogImgSec) ogImgSec.setAttribute('content', fullImg);
+          if (twImg) twImg.setAttribute('content', fullImg);
+          if (ogUrl) ogUrl.setAttribute('content', fullUrl);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

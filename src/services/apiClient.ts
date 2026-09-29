@@ -153,8 +153,18 @@ async function request<T>(endpoint: string, options: RequestInit & { skipCache?:
     const baseUrlSanitized = BASE_URL.replace(/\/$/, '');
     const endpointSanitized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
-    // Always use centralized STEEPCOREAPI (https://steepcoreapi.onrender.com)
-    const url = endpoint.startsWith('http') ? endpoint : `${baseUrlSanitized}${endpointSanitized}`;
+    // AI endpoints (/api/Ai/generate, /api/ai/Chat, /api/ai/ExpandNode) ALWAYS route through our server proxy,
+    // which forwards to STEEPCOREAPI first and seamlessly recovers if STEEPCOREAPI experiences Google AI 503 high-demand spikes.
+    const isAi = endpointSanitized.toLowerCase().includes('/api/ai/');
+    let url: string;
+    if (isAi) {
+      const aiIdx = endpointSanitized.toLowerCase().indexOf('/api/ai/');
+      url = endpointSanitized.substring(aiIdx);
+    } else if (endpoint.startsWith('http')) {
+      url = endpoint;
+    } else {
+      url = `${baseUrlSanitized}${endpointSanitized}`;
+    }
 
     try {
       const response = await fetch(url, { ...options, headers });

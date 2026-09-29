@@ -28,8 +28,14 @@ export function formatErrorMessage(rawMessage: any): string {
     } catch {}
 
     const lower = rawMessage.toLowerCase();
+    if (lower.includes('unexpected error') || lower.includes('status 500') || lower.includes('internal server error')) {
+      return 'The AI service is currently busy. Please retry in a few moments.';
+    }
+    if (lower.includes('503') || lower.includes('busy') || lower.includes('warming up') || lower.includes('service unavailable') || lower.includes('high demand') || lower.includes('spikes in demand')) {
+      return 'The AI model is experiencing temporary high demand. Please retry in a few seconds.';
+    }
     if (lower.includes('quota') || lower.includes('429') || lower.includes('rate limit') || lower.includes('resource_exhausted')) {
-      return 'Free AI generation quota reached. Using offline roadmap engine.';
+      return 'AI generation quota reached. Please try again shortly.';
     }
     if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('econnrefused')) {
       return 'Network connection issue. Please retry.';
@@ -63,17 +69,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 0);
   }, []);
 
   const addToast = useCallback((type: ToastType, message: string) => {
     const cleanMessage = type === 'error' ? formatErrorMessage(message) : message;
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev.slice(-2), { id, type, message: cleanMessage }]);
-
+    
+    // Defer state update to next macrotask to prevent React "Cannot update a component while rendering a different component"
     setTimeout(() => {
-      removeToast(id);
-    }, 4000);
+      setToasts((prev) => [...prev.slice(-2), { id, type, message: cleanMessage }]);
+
+      setTimeout(() => {
+        removeToast(id);
+      }, 4000);
+    }, 0);
   }, [removeToast]);
 
   const showError = useCallback((msg: string) => addToast('error', msg), [addToast]);
