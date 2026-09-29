@@ -184,6 +184,24 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
         </div>
       </header>
 
+      {/* Sidebar Open Trigger Button (located directly below the logo) */}
+      {!isSidebarOpen && onNavigate && (
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          title="Open Sidebar Menu (=>)"
+          aria-label="Open Sidebar Menu"
+          className="fixed top-[62px] left-3 z-30 group flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161b22]/95 hover:bg-[#21262d] active:scale-95 backdrop-blur-md border border-[#30363d] hover:border-[#58a6ff]/70 text-[#c9d1d9] hover:text-[#ffffff] rounded-lg shadow-lg hover:shadow-[#58a6ff]/20 transition-all duration-200 cursor-pointer select-none"
+        >
+          <span className="font-mono text-xs font-bold text-[#58a6ff] group-hover:translate-x-0.5 transition-transform flex items-center tracking-tight">
+            =&gt;
+          </span>
+          <span className="text-[11px] font-semibold text-[#7d8590] group-hover:text-[#e6edf3] tracking-wider uppercase hidden sm:inline">
+            Sidebar
+          </span>
+        </button>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         
@@ -191,10 +209,14 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
           <>
             <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
             <div className="fixed inset-y-0 left-0 z-50 md:relative md:z-auto">
-              <Sidebar onNavigate={(page) => {
-                if (window.innerWidth < 768) setIsSidebarOpen(false);
-                onNavigate(page);
-              }} currentPage={currentPage} />
+              <Sidebar 
+                onNavigate={(page) => {
+                  if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  onNavigate(page);
+                }} 
+                onClose={() => setIsSidebarOpen(false)}
+                currentPage={currentPage} 
+              />
             </div>
           </>
         )}

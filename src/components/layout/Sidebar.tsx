@@ -7,9 +7,10 @@ import { useAuthStore } from '../../store/useAuthStore';
 interface SidebarProps {
   onNavigate: (page: 'landing' | 'catalog' | 'roadmap' | 'product' | 'editor' | 'dashboard') => void;
   currentPage: string;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage, onClose }) => {
   const { savedBlueprintIds, activeRoadmaps } = useLibraryStore();
   const { selectedDomain, setSelectedDomain, setSelectedIndustry, setSelectedCategoryType, setIsAuthModalOpen, setActiveTab } = useUIStore();
   const { isAuthenticated } = useAuthStore();
@@ -38,6 +39,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => 
 
   return (
     <aside className="flex w-[260px] h-full bg-[#0d1117] border-r border-[#30363d] flex-col text-[#e6edf3] shrink-0 z-10">
+      {/* Top Header & Collapse Button */}
+      <div className="p-3 border-b border-[#30363d] flex items-center justify-between bg-[#161b22]/70 shrink-0">
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Steepcore Logo" className="w-5 h-5 object-contain" />
+          <span className="font-bold text-xs tracking-tight text-[#e6edf3]">STEEPCORE</span>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            title="Collapse Sidebar (<=)"
+            aria-label="Collapse Sidebar"
+            className="flex items-center gap-1.5 px-2 py-1 bg-[#21262d] hover:bg-[#30363d] active:scale-95 border border-[#30363d] hover:border-[#f85149]/60 rounded-md text-xs text-[#c9d1d9] hover:text-white transition-all cursor-pointer select-none"
+          >
+            <span className="font-mono text-xs font-bold text-[#f85149]">&lt;=</span>
+            <span className="text-[11px] font-medium text-[#7d8590] hover:text-[#e6edf3]">Hide</span>
+          </button>
+        )}
+      </div>
+
       <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
         {/* Main Nav */}
         <div className="space-y-1 mb-8">

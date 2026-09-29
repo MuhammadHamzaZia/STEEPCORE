@@ -85,7 +85,7 @@ async function startServer() {
           ...(req.headers.authorization ? { "Authorization": req.headers.authorization } : {})
         },
         body: JSON.stringify({ prompt }),
-        signal: AbortSignal.timeout(3500)
+        signal: AbortSignal.timeout(8000)
       });
 
       const data: any = await targetRes.json().catch(() => ({}));
