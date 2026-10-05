@@ -24,6 +24,14 @@
 }
 
 @layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-default) transparent;

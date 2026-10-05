@@ -21,7 +21,8 @@ import {
   AlertCircle, Search, ArrowLeft, X, Sparkles, MessageSquare, Send, 
   LayoutDashboard, Save, MousePointer2, Settings, BoxSelect, Trash2, Menu, 
   Circle, Square, Hexagon, Database, Grid, Download, Image as ImageIcon,
-  Lock, Network, GitFork, LocateFixed, Eye, EyeOff
+  Lock, Network, GitFork, LocateFixed, Eye, EyeOff, ZoomIn, ChevronDown, Wrench,
+  Plus, GitBranch
 } from 'lucide-react';
 import { EditableNode, cn } from './EditableNode';
 import { getLayoutedElements, ensureConnectedEdges, ensureSingleStartingPoint } from '../lib/flow';
@@ -523,14 +524,23 @@ const openSaveModal = () => {
     }
   };
 
-  const addNode = (type: string) => {
+  const addNode = (customLabel?: string) => {
+    const center = reactFlowInstance?.screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    }) || { x: 300, y: 300 };
+
     const newNode: Node = {
       id: `node-${Date.now()}`,
       type: 'editable',
-      position: { x: Math.random() * 200 + 100, y: Math.random() * 200 + 100 },
-      data: { label: `New ${type}`, type },
+      position: { 
+        x: Math.round(center.x - 90 + (Math.random() * 40 - 20)), 
+        y: Math.round(center.y - 30 + (Math.random() * 40 - 20)) 
+      },
+      data: { label: customLabel || 'New Node', type: 'topic' },
     };
     setNodes((nds) => [...nds, newNode]);
+    showSuccess("Added node to flowchart");
   };
 
   const deleteSelected = () => {
@@ -593,90 +603,225 @@ const openSaveModal = () => {
     showSuccess(targetDir === 'TB' ? "Tree layout (Top-Down hierarchy) applied" : "Tree layout (Horizontal mindmap) applied");
   }, [nodes, edges, layoutDirection, saveTitle, initialRole, focusStartNode, setNodes, setEdges, reactFlowInstance, showSuccess]);
 
+  // Mobile Double-Tap & Scroll Up/Down Zoom Implementation
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const [zoomDisplay, setZoomDisplay] = useState<number | null>(null);
+  const zoomDisplayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const container = canvasWrapperRef.current;
+    if (!container) return;
+
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+    let isDoubleTapDragging = false;
+    let dragStartY = 0;
+    let startZoom = 1;
+    let dragDeltaY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) {
+        isDoubleTapDragging = false;
+        return;
+      }
+      const touch = e.touches[0];
+      const now = Date.now();
+      const timeSince = now - lastTapTime;
+      const dist = Math.hypot(touch.clientX - lastTapX, touch.clientY - lastTapY);
+
+      if (timeSince > 30 && timeSince < 380 && dist < 45) {
+        // Double-tap detected: activate one-finger zoom mode
+        isDoubleTapDragging = true;
+        dragStartY = touch.clientY;
+        startZoom = reactFlowInstance.getZoom();
+        dragDeltaY = 0;
+        setZoomDisplay(Math.round(startZoom * 100));
+        if (zoomDisplayTimeoutRef.current) clearTimeout(zoomDisplayTimeoutRef.current);
+      } else {
+        isDoubleTapDragging = false;
+        lastTapTime = now;
+        lastTapX = touch.clientX;
+        lastTapY = touch.clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDoubleTapDragging || e.touches.length !== 1) return;
+      e.preventDefault(); // Stop native page bounce/scroll
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - dragStartY;
+      dragDeltaY = deltaY;
+
+      // Dragging down (deltaY > 0) -> zoom in
+      // Dragging up (deltaY < 0) -> zoom out
+      const factor = Math.exp(deltaY * 0.007);
+      const newZoom = Math.min(Math.max(startZoom * factor, 0.1), 2.5);
+      reactFlowInstance.zoomTo(newZoom, { duration: 0 });
+      setZoomDisplay(Math.round(newZoom * 100));
+    };
+
+    const onTouchEnd = () => {
+      if (isDoubleTapDragging) {
+        isDoubleTapDragging = false;
+        // If quick double-tap with minimal movement, toggle zoom
+        if (Math.abs(dragDeltaY) < 10) {
+          const currentZoom = reactFlowInstance.getZoom();
+          const targetZoom = currentZoom < 1.0 ? 1.4 : 0.7;
+          reactFlowInstance.zoomTo(targetZoom, { duration: 250 });
+          setZoomDisplay(Math.round(targetZoom * 100));
+        }
+        lastTapTime = 0;
+        if (zoomDisplayTimeoutRef.current) clearTimeout(zoomDisplayTimeoutRef.current);
+        zoomDisplayTimeoutRef.current = setTimeout(() => {
+          setZoomDisplay(null);
+        }, 1200);
+      }
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+      if (zoomDisplayTimeoutRef.current) clearTimeout(zoomDisplayTimeoutRef.current);
+    };
+  }, [reactFlowInstance]);
+
   return (
     <div className="flex flex-col h-full w-full bg-canvas-default text-fg-default font-sans overflow-hidden">
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-3 sm:px-4 z-30 flex-nowrap pl-14 sm:pl-16">
-        <div className="flex items-center gap-1 sm:gap-3">
-          <button onClick={onBack} title="Back" className="p-1.5 sm:p-2 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+      <div className="h-13 sm:h-14 border-b border-border-default bg-canvas-surface flex items-center justify-between px-3 sm:px-4 md:pl-14 lg:pl-16 z-30 flex-nowrap overflow-x-auto no-scrollbar gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
+          <button onClick={onBack} title="Back to Catalog" className="p-1.5 hover:bg-canvas-inset rounded-md text-fg-muted hover:text-fg-default transition-colors shrink-0">
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="h-4 w-px bg-border-default mx-1"></div>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="w-4 h-4 text-action-accent" />
-            <span className="hidden sm:inline">Workspace</span>
+          <div className="h-4 w-px bg-border-default shrink-0"></div>
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold truncate">
+            <Sparkles className="w-3.5 h-3.5 text-action-accent shrink-0" />
+            <span className="truncate max-w-[100px] xs:max-w-[160px] sm:max-w-[240px]">
+              {initialRole || saveTitle || "Workspace"}
+            </span>
           </div>
         </div>
         
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Focus Start Button */}
+        {/* MOBILE & TABLET: Single button that opens the sidebar tools drawer + Save */}
+        <div className="flex lg:hidden items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              if (isSidebarOpen && leftSidebarTab === 'tools') {
+                setIsSidebarOpen(false);
+              } else {
+                setIsSidebarOpen(true);
+                setLeftSidebarTab('tools');
+              }
+            }}
+            title="Open Tools & AI Sidebar"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all shrink-0 shadow-xs active:scale-95 cursor-pointer ${
+              isSidebarOpen 
+                ? 'bg-action-accent/20 border border-action-accent/50 text-action-accent' 
+                : 'bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5 text-action-accent" />
+            <span>Tools</span>
+            <ChevronDown className={`w-3 h-3 text-fg-muted transition-transform duration-200 ${isSidebarOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Save Button */}
+          <button 
+            onClick={openSaveModal} 
+            title="Save Roadmap" 
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors shadow-xs shrink-0 active:scale-95"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Save</span>
+          </button>
+        </div>
+
+        {/* LAPTOP / DESKTOP (lg:): Keep the tools directly in the top toolbar */}
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          {/* Focus Start */}
           <button
             onClick={focusStartNode}
             title="Focus and Center on the Starting Point"
-            className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs font-semibold bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 text-sky-300 rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 text-sky-300 rounded-md transition-colors shrink-0 shadow-xs active:scale-95"
           >
             <LocateFixed className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden sm:inline">Focus Start</span>
+            <span>Focus Start</span>
           </button>
 
-          {/* Tree Layout Selector */}
-          <div className="flex items-center bg-canvas-inset border border-border-default rounded-md p-0.5">
-            <button
-              onClick={() => onLayout('TB')}
-              title="Top-Down Tree Hierarchy"
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
-                layoutDirection === 'TB' 
-                  ? "bg-canvas-default text-action-accent shadow-xs border border-border-default" 
-                  : "text-fg-muted hover:text-fg-default"
-              )}
-            >
-              <Network className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Top-Down</span>
-            </button>
-            <button
-              onClick={() => onLayout('LR')}
-              title="Horizontal Tree Hierarchy"
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors",
-                layoutDirection === 'LR' 
-                  ? "bg-canvas-default text-action-accent shadow-xs border border-border-default" 
-                  : "text-fg-muted hover:text-fg-default"
-              )}
-            >
-              <GitFork className="w-3.5 h-3.5 rotate-90" />
-              <span className="hidden md:inline">Left-Right</span>
-            </button>
-          </div>
+          {/* Top-Down */}
+          <button
+            onClick={() => onLayout('TB')}
+            title="Top-Down Tree Hierarchy"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md border transition-colors shrink-0 shadow-xs active:scale-95 ${
+              layoutDirection === 'TB'
+                ? 'bg-[#1f6feb]/20 border-[#388bfd] text-[#58a6ff]'
+                : 'bg-canvas-inset border-border-default hover:bg-canvas-surface text-fg-default'
+            }`}
+          >
+            <Network className="w-3.5 h-3.5" />
+            <span>Top-Down</span>
+          </button>
 
-          {/* Toggle Edge Labels */}
+          {/* Left-Right */}
+          <button
+            onClick={() => onLayout('LR')}
+            title="Left-Right Mindmap Hierarchy"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md border transition-colors shrink-0 shadow-xs active:scale-95 ${
+              layoutDirection === 'LR'
+                ? 'bg-[#1f6feb]/20 border-[#388bfd] text-[#58a6ff]'
+                : 'bg-canvas-inset border-border-default hover:bg-canvas-surface text-fg-default'
+            }`}
+          >
+            <GitFork className="w-3.5 h-3.5 rotate-90" />
+            <span>Left-Right</span>
+          </button>
+
+          {/* Labels: On / Off */}
           <button
             onClick={toggleEdgeLabels}
-            title={showEdgeLabels ? "Hide edge relationship labels" : "Show edge relationship labels"}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-md border transition-colors",
-              showEdgeLabels 
-                ? "bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default" 
-                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
-            )}
+            title="Toggle Relationship Labels"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default rounded-md transition-colors shrink-0 shadow-xs active:scale-95"
           >
-            {showEdgeLabels ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span className="hidden md:inline">{showEdgeLabels ? "Labels: On" : "Labels: Off"}</span>
+            {showEdgeLabels ? <Eye className="w-3.5 h-3.5 text-fg-muted" /> : <EyeOff className="w-3.5 h-3.5 text-amber-400" />}
+            <span>Labels: {showEdgeLabels ? 'On' : 'Off'}</span>
           </button>
 
-          <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
-            <Download className="w-4 h-4" /> <span className="hidden sm:inline">Download PDF</span></button>
-          <button onClick={() => onLayout(layoutDirection)} title="Re-organize Tree Layout" className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-canvas-inset border border-border-default hover:bg-canvas-default rounded-md transition-colors">
-            <Grid className="w-4 h-4" /> <span className="hidden sm:inline">Auto-Align</span></button>
-          <button onClick={openSaveModal} className="flex items-center gap-2 px-2 py-1.5 sm:px-3 text-sm bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors">
-            <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save</span></button>
+          {/* Download PDF */}
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            title="Toggle Tools & AI Chat"
-            className="md:hidden flex items-center gap-1 px-2 py-1.5 text-xs bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default"
+            onClick={handleDownloadPdf}
+            title="Download Vector PDF"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default rounded-md transition-colors shrink-0 shadow-xs active:scale-95"
           >
-            <Sparkles className="w-3.5 h-3.5 text-action-accent" />
-            <span>AI Chat</span>
+            <Download className="w-3.5 h-3.5 text-fg-muted" />
+            <span>Download PDF</span>
+          </button>
+
+          {/* Auto-Align */}
+          <button
+            onClick={() => onLayout(layoutDirection)}
+            title="Auto-Align Nodes"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default rounded-md transition-colors shrink-0 shadow-xs active:scale-95"
+          >
+            <Grid className="w-3.5 h-3.5 text-fg-muted" />
+            <span>Auto-Align</span>
+          </button>
+
+          {/* Save Button */}
+          <button 
+            onClick={openSaveModal} 
+            title="Save Roadmap" 
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-action-primary hover:bg-action-primary-hover text-white rounded-md transition-colors shadow-xs shrink-0 active:scale-95"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Save</span>
           </button>
         </div>
       </div>
@@ -693,42 +838,149 @@ const openSaveModal = () => {
         )}
         {/* Left Sidebar */}
         <div className={`absolute md:relative z-30 h-full w-80 md:w-80 border-r border-border-default bg-canvas-surface flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-          <div className="flex border-b border-border-default">
-            <button 
-              onClick={() => setLeftSidebarTab('tools')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${leftSidebarTab === 'tools' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default'}`}
+          <div className="flex items-center justify-between border-b border-border-default bg-canvas-surface shrink-0">
+            <div className="flex flex-1">
+              <button 
+                onClick={() => setLeftSidebarTab('tools')}
+                className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${leftSidebarTab === 'tools' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default'}`}
+              >
+                <Wrench className="w-3.5 h-3.5 text-action-accent" /> Tools
+              </button>
+              <button 
+                onClick={() => setLeftSidebarTab('chat')}
+                className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${leftSidebarTab === 'chat' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default'}`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-action-accent" /> AI Chat
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-2 mr-2 text-fg-muted hover:text-fg-default hover:bg-canvas-inset rounded-md transition-colors"
+              title="Close Sidebar"
             >
-              Tools
-            </button>
-            <button 
-              onClick={() => setLeftSidebarTab('chat')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${leftSidebarTab === 'chat' ? 'border-action-accent text-fg-default' : 'border-transparent text-fg-muted hover:text-fg-default'}`}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> AI Chat
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {leftSidebarTab === 'tools' && (
               <div className="p-4 space-y-6">
+                {/* 1. Add Node */}
                 <div>
-                  <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Add Node</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => addNode('topic')} className="flex flex-col items-center justify-center gap-2 p-3 bg-canvas-inset border border-border-default hover:border-action-accent rounded-md transition-colors group">
-                      <Square className="w-5 h-5 text-fg-muted group-hover:text-action-accent" />
-                      <span className="text-xs">Topic</span>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider">Add Node</h3>
+                    <span className="text-[10px] text-fg-muted font-mono">Flowchart Element</span>
+                  </div>
+
+                  <button 
+                    onClick={() => addNode('New Step')} 
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-canvas-inset hover:bg-canvas-default border border-border-default hover:border-action-accent rounded-lg text-fg-default hover:text-white transition-all shadow-xs active:scale-95 group font-medium text-xs"
+                  >
+                    <Plus className="w-4 h-4 text-action-accent group-hover:scale-110 transition-transform" />
+                    <span>+ Add Node to Flowchart</span>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <button 
+                      onClick={() => addNode('Topic Node')} 
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-canvas-inset hover:bg-canvas-default border border-border-default hover:border-action-accent rounded-md text-fg-muted hover:text-fg-default text-xs transition-colors active:scale-95"
+                    >
+                      <Square className="w-3.5 h-3.5 text-fg-muted" />
+                      <span>Topic</span>
                     </button>
-                    <button onClick={() => addNode('concept')} className="flex flex-col items-center justify-center gap-2 p-3 bg-canvas-inset border border-border-default hover:border-action-accent rounded-md transition-colors group">
-                      <Circle className="w-5 h-5 text-fg-muted group-hover:text-action-accent" />
-                      <span className="text-xs">Concept</span>
+                    <button 
+                      onClick={() => addNode('Milestone')} 
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-canvas-inset hover:bg-canvas-default border border-border-default hover:border-action-accent rounded-md text-fg-muted hover:text-fg-default text-xs transition-colors active:scale-95"
+                    >
+                      <GitBranch className="w-3.5 h-3.5 text-fg-muted" />
+                      <span>Milestone</span>
                     </button>
-                    <button onClick={() => addNode('decision')} className="flex flex-col items-center justify-center gap-2 p-3 bg-canvas-inset border border-border-default hover:border-action-accent rounded-md transition-colors group">
-                      <Hexagon className="w-5 h-5 text-fg-muted group-hover:text-action-accent" />
-                      <span className="text-xs">Decision</span>
+                  </div>
+                </div>
+
+                {/* Mobile and Tablet Only: Extra Tools in Sidebar Drawer */}
+                <div className="lg:hidden space-y-6">
+                  {/* 2. Canvas Navigation & Focus */}
+                  <div className="pt-2 border-t border-border-default">
+                    <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2.5">Canvas Navigation</h3>
+                    <button
+                      onClick={focusStartNode}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 text-sky-300 text-xs font-medium transition-colors shadow-xs active:scale-95"
+                    >
+                      <span className="flex items-center gap-2">
+                        <LocateFixed className="w-4 h-4 text-sky-400" /> Focus Starting Point
+                      </span>
+                      <span className="text-[10px] bg-sky-500/20 px-1.5 py-0.5 rounded font-mono">Center</span>
                     </button>
-                    <button onClick={() => addNode('database')} className="flex flex-col items-center justify-center gap-2 p-3 bg-canvas-inset border border-border-default hover:border-action-accent rounded-md transition-colors group">
-                      <Database className="w-5 h-5 text-fg-muted group-hover:text-action-accent" />
-                      <span className="text-xs">Data</span>
+                  </div>
+
+                  {/* 3. Layout & Hierarchy */}
+                  <div className="pt-2 border-t border-border-default space-y-2">
+                    <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2.5">Layout & Hierarchy</h3>
+                    
+                    <button
+                      onClick={() => onLayout('TB')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md border text-xs transition-colors ${
+                        layoutDirection === 'TB' 
+                          ? 'bg-action-accent/15 border-action-accent/40 text-action-accent font-semibold' 
+                          : 'bg-canvas-inset border-border-default hover:bg-canvas-surface text-fg-default'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Network className="w-4 h-4" /> Top-Down Tree
+                      </span>
+                      {layoutDirection === 'TB' && <span className="text-xs text-action-accent font-bold">✓ Active</span>}
+                    </button>
+
+                    <button
+                      onClick={() => onLayout('LR')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md border text-xs transition-colors ${
+                        layoutDirection === 'LR' 
+                          ? 'bg-action-accent/15 border-action-accent/40 text-action-accent font-semibold' 
+                          : 'bg-canvas-inset border-border-default hover:bg-canvas-surface text-fg-default'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <GitFork className="w-4 h-4 rotate-90" /> Left-Right Mindmap
+                      </span>
+                      {layoutDirection === 'LR' && <span className="text-xs text-action-accent font-bold">✓ Active</span>}
+                    </button>
+
+                    <button
+                      onClick={() => onLayout(layoutDirection)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default text-xs transition-colors"
+                    >
+                      <Grid className="w-4 h-4 text-fg-muted" /> Re-align Grid Elements
+                    </button>
+                  </div>
+
+                  {/* 4. View Options */}
+                  <div className="pt-2 border-t border-border-default space-y-2">
+                    <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2.5">Canvas View</h3>
+                    
+                    <button
+                      onClick={toggleEdgeLabels}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default text-xs transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        {showEdgeLabels ? <Eye className="w-4 h-4 text-fg-muted" /> : <EyeOff className="w-4 h-4 text-amber-400" />}
+                        Relationship Labels
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${showEdgeLabels ? 'bg-action-primary/15 text-action-primary' : 'bg-canvas-default text-fg-muted'}`}>
+                        {showEdgeLabels ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* 5. Export */}
+                  <div className="pt-2 border-t border-border-default">
+                    <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2.5">Export</h3>
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default text-xs font-medium transition-colors"
+                    >
+                      <Download className="w-4 h-4 text-action-accent" /> Download PDF Vector
                     </button>
                   </div>
                 </div>
@@ -760,7 +1012,7 @@ const openSaveModal = () => {
                     </div>
                   )}
                 </div>
-                <div className="p-3 border-t border-border-default bg-canvas-surface">
+                <div className="p-3 pb-8 md:pb-3 border-t border-border-default bg-canvas-surface">
                   <form onSubmit={handleSendMessage} className="relative flex items-center">
                     <input
                       type="text"
@@ -784,7 +1036,14 @@ const openSaveModal = () => {
         </div>
 
         {/* Center Canvas */}
-        <div className="flex-1 relative bg-[#0d1117]">
+        <div ref={canvasWrapperRef} className="flex-1 relative bg-[#0d1117] select-none touch-none">
+          {/* Double-Tap Drag Zoom Indicator Pill */}
+          {zoomDisplay !== null && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none bg-[#161b22]/95 border border-[#388bfd]/40 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-2xl text-xs font-semibold text-[#58a6ff] flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+              <ZoomIn className="w-3.5 h-3.5 text-[#58a6ff]" />
+              <span>Zoom: {zoomDisplay}%</span>
+            </div>
+          )}
           {isLoading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0d1117]/80 backdrop-blur-sm transition-all duration-300">
               <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl p-7 flex flex-col items-center justify-center text-center relative max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">

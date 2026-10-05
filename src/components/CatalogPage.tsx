@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star, GitMerge, Search, Filter, Bookmark, Sparkles, Check, RefreshCw, SlidersHorizontal, ArrowUpDown, X, LayoutGrid, LayoutList, ChevronUp } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { api } from '../services/api';
@@ -9,97 +9,122 @@ interface BlueprintCardProps {
   id: string;
   username: string;
   repo: string;
-  title: string;  description?: string;  nodesCount: number;
+  title: string;
+  description?: string;
+  nodesCount: number;
   price: number;
   originType?: 'official' | 'creator' | 'ai_generated' | 'remixed';
   onCardClick?: (id: string) => void;
   isBookmarked: boolean;
   onBookmarkClick: (e: React.MouseEvent, id: string) => void;
+  isCompact?: boolean;
 }
 
-const BlueprintSkeletonCard = React.memo(() => (
+const BlueprintSkeletonCard = React.memo<{ isCompact?: boolean }>(({ isCompact }) => (
   <div className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden flex flex-col relative z-0 animate-pulse">
-    <div className="absolute top-3 left-3 w-16 h-5 bg-border-default/50 rounded z-10"></div>
-    <div className="absolute top-3 right-3 w-7 h-7 bg-canvas-default border border-border-default rounded-md z-10 flex items-center justify-center">
-      <div className="w-3.5 h-3.5 bg-border-default/40 rounded-sm"></div>
+    <div className="absolute top-2 left-2 w-14 h-4 bg-border-default/50 rounded z-10"></div>
+    <div className="absolute top-2 right-2 w-6 h-6 bg-canvas-default border border-border-default rounded-md z-10 flex items-center justify-center">
+      <div className="w-3 h-3 bg-border-default/40 rounded-sm"></div>
     </div>
     
-    <div className="h-36 bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-4">
+    <div className={`${isCompact ? 'h-20 sm:h-32' : 'h-24 sm:h-36'} bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-3`}>
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
-      <div className="w-12 h-12 rounded-lg bg-border-default/20 flex items-center justify-center">
-        <GitMerge size={32} className="text-fg-muted opacity-20" />
+      <div className="w-10 h-10 rounded-lg bg-border-default/20 flex items-center justify-center">
+        <GitMerge size={24} className="text-fg-muted opacity-20" />
       </div>
     </div>
     
-    <div className="p-4 flex flex-col flex-1">
-      <div className="w-24 h-3 bg-border-default/40 rounded mb-2"></div>
-      <div className="w-4/5 h-4 bg-border-default/70 rounded mb-1.5"></div>
-      <div className="w-3/5 h-4 bg-border-default/70 rounded mb-3"></div>
+    <div className={`${isCompact ? 'p-2.5 sm:p-3.5' : 'p-3.5 sm:p-4'} flex flex-col flex-1`}>
+      <div className="w-20 h-2.5 bg-border-default/40 rounded mb-1.5"></div>
+      <div className="w-4/5 h-3.5 bg-border-default/70 rounded mb-1"></div>
+      <div className="w-3/5 h-3.5 bg-border-default/70 rounded mb-2.5"></div>
       
-      <div className="w-full h-2.5 bg-border-default/30 rounded mb-1.5"></div>
-      <div className="w-4/5 h-2.5 bg-border-default/30 rounded mb-4 mt-auto"></div>
+      {!isCompact && (
+        <>
+          <div className="w-full h-2.5 bg-border-default/30 rounded mb-1.5 hidden xs:block"></div>
+          <div className="w-4/5 h-2.5 bg-border-default/30 rounded mb-3 hidden xs:block"></div>
+        </>
+      )}
       
-      <div className="w-16 h-3 bg-border-default/40 rounded mb-4"></div>
+      <div className="w-14 h-2.5 bg-border-default/40 rounded mb-2 mt-auto"></div>
       
-      <div className="flex items-center justify-between pt-3 border-t border-border-default">
-        <div className="w-10 h-3.5 bg-border-default/40 rounded"></div>
-        <div className="w-12 h-5 bg-border-default/50 rounded"></div>
+      <div className="flex items-center justify-between pt-2 border-t border-border-default">
+        <div className="w-9 h-3 bg-border-default/40 rounded"></div>
+        <div className="w-10 h-4 bg-border-default/50 rounded"></div>
       </div>
     </div>
   </div>
 ));
 
-const BlueprintCard = React.memo<BlueprintCardProps>(({ id, username, repo, title, description, nodesCount, price, originType, onCardClick, isBookmarked, onBookmarkClick }) => (
+const BlueprintCard = React.memo<BlueprintCardProps>(({ 
+  id, username, repo, title, description, nodesCount, price, originType, 
+  onCardClick, isBookmarked, onBookmarkClick, isCompact = false 
+}) => (
   <div 
     onClick={() => onCardClick && onCardClick(id)} 
     onMouseEnter={() => {
       api.getBlueprintById(id).catch(() => {});
     }}
-    className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-all flex flex-col group cursor-pointer relative z-0 animate-in fade-in duration-200"
+    className="@container bg-canvas-surface border border-border-default rounded-lg overflow-hidden hover:border-fg-muted transition-all flex flex-col group cursor-pointer relative z-0 animate-in fade-in duration-200 shadow-xs active:scale-[0.98]"
   >
     {originType === 'official' ? (
-      <div className="absolute top-3 left-3 bg-[#1f6feb]/10 border border-[#388bfd]/30 text-[#2f81f7] text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm backdrop-blur-sm">
+      <div className="absolute top-2 left-2 bg-[#1f6feb]/15 border border-[#388bfd]/30 text-[#2f81f7] text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm backdrop-blur-sm">
         ⚡ Official
       </div>
     ) : originType === 'creator' ? (
-      <div className="absolute top-3 left-3 bg-canvas-inset/80 backdrop-blur-sm border border-border-default text-fg-muted text-[10px] font-medium px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm">
+      <div className="absolute top-2 left-2 bg-canvas-inset/85 backdrop-blur-sm border border-border-default text-fg-muted text-[9px] sm:text-[10px] font-medium px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 z-10 shadow-sm">
         👤 @{username}
       </div>
     ) : null}
 
-    <button onClick={(e) => onBookmarkClick(e, id)} className="absolute top-3 right-3 p-1.5 rounded-md bg-canvas-default border border-border-default hover:border-fg-muted transition-colors z-10">
-      <Bookmark size={16} className={isBookmarked ? "text-action-accent fill-action-accent" : "text-fg-muted"} />
+    <button 
+      onClick={(e) => onBookmarkClick(e, id)} 
+      title={isBookmarked ? "Remove bookmark" : "Save bookmark"}
+      className="absolute top-2 right-2 p-1 sm:p-1.5 rounded-md bg-canvas-default/80 backdrop-blur-sm border border-border-default hover:border-fg-muted transition-colors z-10 active:scale-90"
+    >
+      <Bookmark size={13} className={isBookmarked ? "text-action-accent fill-action-accent" : "text-fg-muted"} />
     </button>
-    <div className="h-36 bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-4">
+
+    {/* Graphical Node Map Preview Banner */}
+    <div className={`${isCompact ? 'h-20 sm:h-32' : 'h-24 sm:h-36'} bg-canvas-inset border-b border-border-default relative overflow-hidden flex items-center justify-center p-2 sm:p-4 transition-all duration-300`}>
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
-      <GitMerge size={48} className="text-fg-muted opacity-20" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex items-center gap-4 opacity-40">
-          <div className="w-8 h-6 bg-border-default rounded-sm border border-fg-muted"></div>
-          <div className="w-4 h-0.5 bg-border-default"></div>
-          <div className="flex flex-col gap-2">
-            <div className="w-8 h-6 bg-border-default rounded-sm border border-fg-muted"></div>
-            <div className="w-8 h-6 bg-border-default rounded-sm border border-fg-muted"></div>
+      <GitMerge size={isCompact ? 26 : 32} className="text-fg-muted opacity-20 sm:w-12 sm:h-12" />
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="flex items-center gap-1.5 sm:gap-4 opacity-40">
+          <div className="w-4 h-3 sm:w-8 sm:h-6 bg-border-default rounded-sm border border-fg-muted"></div>
+          <div className="w-2 sm:w-4 h-0.5 bg-border-default"></div>
+          <div className="flex flex-col gap-1 sm:gap-2">
+            <div className="w-4 h-3 sm:w-8 sm:h-6 bg-border-default rounded-sm border border-fg-muted"></div>
+            <div className="w-4 h-3 sm:w-8 sm:h-6 bg-border-default rounded-sm border border-fg-muted"></div>
           </div>
         </div>
       </div>
     </div>
-    <div className="p-4 flex flex-col flex-1">
-      <div className="text-xs text-fg-muted font-mono mb-1 truncate w-full max-w-full">{username}/{repo}</div>
-      <h3 className="font-semibold text-fg-default text-[clamp(0.875rem,1.5cqi,1.125rem)] mb-1 group-hover:text-action-accent transition-colors line-clamp-2">{title}</h3>
-      {description && <p className="text-xs text-fg-muted line-clamp-2 mb-3 leading-relaxed">{description}</p>}
-      <div className="text-xs text-fg-muted mb-4 mt-auto">
-        {nodesCount} Nodes
+
+    {/* Card Content */}
+    <div className={`${isCompact ? 'p-2.5 sm:p-3.5' : 'p-3 sm:p-4'} flex flex-col flex-1`}>
+      <div className="text-[10px] sm:text-xs text-fg-muted font-mono mb-0.5 truncate w-full">{username}/{repo}</div>
+      <h3 className={`font-semibold text-fg-default ${isCompact ? 'text-xs sm:text-sm line-clamp-2' : 'text-xs sm:text-sm md:text-base line-clamp-2'} mb-1 group-hover:text-action-accent transition-colors leading-snug`}>
+        {title}
+      </h3>
+      
+      {!isCompact && description && (
+        <p className="text-[11px] sm:text-xs text-fg-muted line-clamp-2 mb-2 leading-relaxed hidden xs:block">
+          {description}
+        </p>
+      )}
+
+      <div className="text-[10px] sm:text-xs text-fg-muted mb-2 mt-auto flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-action-primary/70"></span>
+        <span>{nodesCount} Nodes</span>
       </div>
       
-      <div className="flex items-center justify-between pt-3 border-t border-border-default">
-        <div className="flex items-center gap-1.5 text-xs text-fg-muted">
-          <span>{price === 0 ? 'Free' : 'Premium'}</span>
-        </div>
+      <div className="flex items-center justify-between pt-2 border-t border-border-default text-xs">
+        <span className="text-[10px] sm:text-xs text-fg-muted">{price === 0 ? 'Free' : 'Premium'}</span>
         {price === 0 ? (
-          <div className="text-sm font-semibold text-action-primary bg-action-primary/10 px-2 py-0.5 rounded border border-action-primary/20">Free</div>
+          <div className="text-[11px] sm:text-xs font-semibold text-action-primary bg-action-primary/10 px-1.5 sm:px-2 py-0.5 rounded border border-action-primary/20">Free</div>
         ) : (
-          <div className="text-sm font-semibold text-fg-default bg-canvas-inset px-2 py-0.5 rounded border border-border-default">${price}</div>
+          <div className="text-[11px] sm:text-xs font-semibold text-fg-default bg-canvas-inset px-1.5 sm:px-2 py-0.5 rounded border border-border-default">${price}</div>
         )}
       </div>
     </div>
@@ -144,13 +169,14 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const PAGE_SIZE = 20;
   const { 
     searchQuery, setSearchQuery, 
-    selectedCategoryType, toggleCategoryType,
-    selectedIndustry, toggleIndustry,
-    selectedDomain, toggleDomain,
+    selectedCategoryType, setSelectedCategoryType, toggleCategoryType,
+    selectedIndustry, setSelectedIndustry, toggleIndustry,
+    selectedDomain, setSelectedDomain, toggleDomain,
     priceFilter, setPriceFilter, 
     assetTypeFilter, setAssetTypeFilter,
     sortBy, setSortBy,
-    setSelectedBlueprintId 
+    setSelectedBlueprintId,
+    setIsMobileHeaderHidden 
   } = useUIStore();
   
   const { savedBlueprintIds, toggleBookmark } = useLibraryStore();
@@ -173,6 +199,95 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [refreshCount, setRefreshCount] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isScrolledCompact, setIsScrolledCompact] = useState(false);
+  const [isCompactGrid, setIsCompactGrid] = useState(false);
+  const isScrolledCompactRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const scrollAnimFrameRef = useRef<number | null>(null);
+  const scrollAccumulatorRef = useRef(0);
+  const transitionLockRef = useRef(0);
+
+  useEffect(() => {
+    isScrolledCompactRef.current = isScrolledCompact;
+  }, [isScrolledCompact]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+    const currentScrollTop = e.currentTarget.scrollTop;
+
+    if (scrollAnimFrameRef.current !== null) return;
+
+    scrollAnimFrameRef.current = window.requestAnimationFrame(() => {
+      const now = Date.now();
+      const delta = currentScrollTop - lastScrollTopRef.current;
+      lastScrollTopRef.current = currentScrollTop;
+      scrollAnimFrameRef.current = null;
+
+      // Always expand immediately when user is near the very top (< 40px)
+      if (currentScrollTop < 40) {
+        if (isScrolledCompactRef.current) {
+          setIsScrolledCompact(false);
+          isScrolledCompactRef.current = false;
+          transitionLockRef.current = now + 350;
+          scrollAccumulatorRef.current = 0;
+        }
+        return;
+      }
+
+      // If we are within the CSS transition lockout period, ignore scroll fluctuations caused by reflow
+      if (now < transitionLockRef.current) {
+        return;
+      }
+
+      // Maintain directional scroll accumulator with reset on direction flip
+      if (delta > 0) {
+        // Scrolling down
+        if (scrollAccumulatorRef.current < 0) {
+          scrollAccumulatorRef.current = 0;
+        }
+        scrollAccumulatorRef.current += delta;
+
+        // When scrolling down past 70px with sustained downward scroll (accumulated > 40px)
+        if (!isScrolledCompactRef.current && currentScrollTop > 70 && scrollAccumulatorRef.current > 40) {
+          setIsScrolledCompact(true);
+          isScrolledCompactRef.current = true;
+          transitionLockRef.current = now + 350;
+          scrollAccumulatorRef.current = 0;
+        }
+      } else if (delta < 0) {
+        // Scrolling up
+        if (scrollAccumulatorRef.current > 0) {
+          scrollAccumulatorRef.current = 0;
+        }
+        scrollAccumulatorRef.current += delta;
+
+        // When scrolling up with deliberate upward scroll (accumulated < -45px)
+        if (isScrolledCompactRef.current && scrollAccumulatorRef.current < -45) {
+          setIsScrolledCompact(false);
+          isScrolledCompactRef.current = false;
+          transitionLockRef.current = now + 350;
+          scrollAccumulatorRef.current = 0;
+        }
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollAnimFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsMobileHeaderHidden(isScrolledCompact);
+  }, [isScrolledCompact, setIsMobileHeaderHidden]);
+
+  useEffect(() => {
+    return () => {
+      setIsMobileHeaderHidden(false);
+    };
+  }, [setIsMobileHeaderHidden]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -366,28 +481,54 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
     }
   };
 
-  return (
-    <div className="flex-1 w-full flex overflow-hidden h-[calc(100vh-56px)] relative">
-      
-      {/* Mobile Filter Button */}
-      <button 
-        onClick={() => setIsMobileFiltersOpen(true)}
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#238636] hover:bg-[#2ea043] border border-[rgba(255,255,255,0.1)] shadow-lg text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2"
-      >
-        <Filter size={14} />
-        Filters
-      </button>
+  const activeFilterCount = (selectedCategoryType.length > 0 ? selectedCategoryType.length : 0) +
+    (selectedIndustry.length > 0 ? selectedIndustry.length : 0) +
+    (selectedDomain.length > 0 ? selectedDomain.length : 0) +
+    (priceFilter !== 'all' ? 1 : 0) +
+    (assetTypeFilter !== 'all' ? 1 : 0);
 
+  return (
+    <div className="flex-1 w-full flex overflow-hidden h-full relative">
+      
       {/* Left Sidebar (Taxonomy Drawer) */}
       <>
         {isMobileFiltersOpen && (
-          <div className="md:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" onClick={() => setIsMobileFiltersOpen(false)}></div>
+          <div className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsMobileFiltersOpen(false)}></div>
         )}
-        <aside className={`fixed md:relative inset-x-0 bottom-0 top-1/4 md:inset-auto z-40 md:z-10 transform ${isMobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'} md:translate-y-0 transition-transform duration-300 md:flex flex-col shrink-0 md:border-r border-t md:border-t-0 border-border-default bg-canvas-default w-full md:w-[clamp(220px,18vw,300px)] rounded-t-2xl md:rounded-none overflow-y-auto custom-scrollbar`}>
-          <div className="h-12 px-4 border-b border-border-default flex items-center justify-between pl-14 sm:pl-16">
-            <h2 className="text-sm font-semibold text-fg-default">Filters</h2>
-            <button className="md:hidden text-fg-muted hover:text-fg-default transition-colors p-1" onClick={() => setIsMobileFiltersOpen(false)}>✕</button>
+        <aside className={`fixed md:relative inset-x-0 bottom-0 top-1/4 md:inset-auto z-50 md:z-10 transform ${isMobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'} md:translate-y-0 transition-transform duration-300 ease-out md:flex flex-col shrink-0 md:border-r border-t md:border-t-0 border-border-default bg-canvas-default w-full md:w-[clamp(220px,18vw,300px)] rounded-t-2xl md:rounded-none overflow-hidden shadow-2xl`}>
+          {/* Pull indicator for mobile */}
+          <div className="w-10 h-1 bg-border-default/80 rounded-full mx-auto my-2.5 md:hidden"></div>
+
+          <div className="h-12 px-4 border-b border-border-default flex items-center justify-between shrink-0 bg-canvas-surface">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal size={14} className="text-action-accent" />
+              <h2 className="text-sm font-semibold text-fg-default">Filter Catalog</h2>
+              {activeFilterCount > 0 && (
+                <span className="text-[10px] bg-action-primary text-white font-bold px-1.5 py-0.2 rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {activeFilterCount > 0 && (
+                <button 
+                  onClick={() => {
+                    setSelectedCategoryType([]);
+                    setSelectedIndustry([]);
+                    setSelectedDomain([]);
+                    setPriceFilter('all');
+                    setAssetTypeFilter('all');
+                  }}
+                  className="text-xs text-action-accent hover:underline px-1 py-0.5"
+                >
+                  Reset
+                </button>
+              )}
+              <button className="md:hidden text-fg-muted hover:text-fg-default p-1.5 rounded-md hover:bg-canvas-inset transition-colors" onClick={() => setIsMobileFiltersOpen(false)}>✕</button>
+            </div>
           </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
 
                     {/* Category Type Section */}
           <div className="p-4 border-b border-border-default">
@@ -516,113 +657,297 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
             </label>
           </div>
         </div>
+        </div>
+
+        {/* Mobile drawer apply footer */}
+        <div className="md:hidden p-3 border-t border-border-default bg-canvas-surface shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen(false)}
+            className="w-full py-2.5 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 active:scale-95"
+          >
+            <span>Apply Filters ({filteredBlueprints.length} roadmaps)</span>
+          </button>
+        </div>
       </aside>
       </>
 
       {/* Main Content Canvas */}
-      <main className="flex-1 bg-canvas-default overflow-y-auto custom-scrollbar flex flex-col">
-        {/* Top Header & Breadcrumbs */}
-        <div className="pl-14 sm:pl-16 md:px-6 py-4 border-b border-border-default bg-canvas-default sticky top-0 z-30">
-          <div className="flex flex-wrap items-center justify-between gap-4 gap-y-3">
-            <div className="shrink-0">
-              <div className="flex items-center gap-2 text-sm text-fg-muted mb-1">
-                <a href="#" className="hover:text-action-accent transition-colors">Marketplace</a>
-                <ChevronRight size={14} />
-                <span className="text-fg-default font-medium">
-                  {selectedDomain.length === 0 ? 'All Domains' : selectedDomain.map(sd => domainsList.find(d => d.name === sd)?.label).join(', ')}
-                </span>
-              </div>
-              <p className="text-xs text-fg-muted">Showing {filteredBlueprints.length} results</p>
+      <main onScroll={handleScroll} className="flex-1 bg-canvas-default overflow-y-auto custom-scrollbar flex flex-col">
+        {/* Top Header & Search/Filter Controls with smooth scroll collapse */}
+        <div className={`border-b border-border-default bg-canvas-default sticky top-0 z-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] px-3 sm:px-6 ${
+          isScrolledCompact 
+            ? 'py-1.5 space-y-0 shadow-sm backdrop-blur-md bg-canvas-default/95' 
+            : 'py-3 space-y-2.5'
+        }`}>
+          {/* Top Row: Breadcrumbs & Stats - remains as the ultra-sleek sticky bar when collapsed */}
+          <div 
+            onClick={() => {
+              if (isScrolledCompact) setIsScrolledCompact(false);
+            }}
+            className={`flex items-center justify-between gap-2 min-h-[28px] pl-11 sm:pl-12 md:pl-0 transition-colors ${
+              isScrolledCompact ? 'cursor-pointer' : ''
+            }`}
+          >
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-fg-muted truncate">
+              <span className="hover:text-action-accent cursor-pointer transition-colors font-medium">Marketplace</span>
+              <ChevronRight size={13} className="shrink-0" />
+              <span className="text-fg-default font-semibold truncate">
+                {selectedDomain.length === 0 ? 'All Domains' : selectedDomain.map(sd => domainsList.find(d => d.name === sd)?.label).join(', ')}
+              </span>
             </div>
-            
-            {/* Filter Toolbar */}
-            <div className="flex flex-1 flex-wrap items-center sm:justify-end gap-3 min-w-[300px]">
-              <div className="relative flex-1 min-w-[160px] max-w-[480px] transition-all">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search blueprints..." 
-                  className="bg-canvas-inset border border-border-default rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-action-accent focus:ring-1 focus:ring-action-accent text-fg-default placeholder:text-fg-muted w-full"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    if (isRefreshing) return;
-                    setIsRefreshing(true);
-                    setBlueprints([]);
-                    setPage(1);
-                    setHasMore(true);
-                    setSkeletonsCount(PAGE_SIZE);
-                    setRefreshCount(prev => prev + 1);
-                  }}
-                  disabled={isRefreshing}
-                  title="Sync live catalog from database API"
-                  className="flex items-center gap-1.5 bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
-                >
-                  <RefreshCw size={13} className={`text-fg-muted ${isRefreshing ? 'animate-spin text-action-accent' : ''}`} />
-                  <span className="hidden sm:inline">Sync Live</span>
-                </button>
 
-                <div className="relative shrink-0 whitespace-nowrap">
-                  <button 
-                    onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                    className="flex items-center gap-2 bg-canvas-inset border border-border-default hover:bg-canvas-surface text-fg-default px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
-                  >
-                    <Filter size={14} className="text-fg-muted" />
-                    <span>Sort: {sortOptions.find(o => o.id === sortBy)?.label}</span>
-                    <ChevronDown size={14} className="text-fg-muted ml-1" />
-                  </button>
-                  
-                  {isSortDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsSortDropdownOpen(false)}></div>
-                      <div className="absolute right-0 mt-2 w-48 bg-canvas-surface border border-border-default rounded-md shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                        {sortOptions.map(option => (
-                          <button
-                            key={option.id}
-                            onClick={() => {
-                              setSortBy(option.id as any);
-                              setIsSortDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortBy === option.id ? 'bg-canvas-inset text-fg-default font-medium' : 'text-fg-muted hover:bg-canvas-inset hover:text-fg-default'}`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] sm:text-xs text-fg-muted bg-canvas-surface border border-border-default px-2 py-0.5 rounded-full shrink-0 font-mono">
+                {filteredBlueprints.length} blueprints
+              </span>
+
+              {/* Quick Expand Button on Mobile when search & options are collapsed */}
+              {isScrolledCompact && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsScrolledCompact(false);
+                  }}
+                  className="md:hidden flex items-center gap-1 text-[11px] text-action-accent bg-canvas-surface hover:bg-canvas-inset border border-border-default px-2 py-0.5 rounded-md font-medium active:scale-95 shadow-xs transition-colors"
+                  title="Expand search and filter options"
+                >
+                  <Search size={11} />
+                  <span>Filters</span>
+                  <ChevronDown size={11} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Collapsible Lower Section: Searchbar, Options Row, and Category Quick Chips */}
+          <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isScrolledCompact 
+              ? 'grid-rows-[0fr] opacity-0 pointer-events-none md:grid-rows-[1fr] md:opacity-100 md:pointer-events-auto' 
+              : 'grid-rows-[1fr] opacity-100'
+          }`}>
+            <div className="overflow-hidden min-h-0 space-y-2.5 pt-1">
+              {/* Search Row: Full width */}
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none" />
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search blueprints by role, skill, or keyword..." 
+                    className="bg-canvas-inset border border-border-default rounded-lg pl-8 pr-8 text-xs sm:text-sm focus:outline-none focus:border-action-accent focus:ring-1 focus:ring-action-accent text-fg-default placeholder:text-fg-muted w-full transition-all duration-200 py-2"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      title="Clear search"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg-default p-0.5 rounded-md"
+                    >
+                      <X size={13} />
+                    </button>
                   )}
                 </div>
+              </div>
+
+              {/* Controls Row: Filters, Sort, Grid display toggle, Sync, and Manual collapse toggle */}
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pt-0.5">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  {/* Mobile Filter Drawer Button */}
+                  <button 
+                    onClick={() => setIsMobileFiltersOpen(true)}
+                    className="md:hidden flex items-center gap-1.5 bg-canvas-surface hover:bg-canvas-inset border border-border-default text-fg-default px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors shadow-xs shrink-0 active:scale-95"
+                  >
+                    <SlidersHorizontal size={12} className="text-action-accent" />
+                    <span>Filters</span>
+                    {activeFilterCount > 0 && (
+                      <span className="bg-action-primary text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Grid View Mode Toggle Button (Single Column vs 2-Column Compact Grid on mobile) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCompactGrid(!isCompactGrid)}
+                    title={isCompactGrid ? "Switch to single card view" : "Switch to 2-column compact grid view (display more roadmaps)"}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all shadow-xs active:scale-95 shrink-0 ${
+                      isCompactGrid 
+                        ? 'bg-action-primary/15 border-action-primary/40 text-action-primary font-semibold' 
+                        : 'bg-canvas-surface hover:bg-canvas-inset border-border-default text-fg-default'
+                    }`}
+                  >
+                    {isCompactGrid ? (
+                      <>
+                        <LayoutList size={13} className="text-action-primary" />
+                        <span>List (1x)</span>
+                      </>
+                    ) : (
+                      <>
+                        <LayoutGrid size={13} className="text-action-accent" />
+                        <span>Grid (2x)</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Sort Dropdown */}
+                  <div className="relative shrink-0">
+                    <button 
+                      onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                      className="flex items-center gap-1.5 bg-canvas-surface hover:bg-canvas-inset border border-border-default text-fg-default px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shadow-xs active:scale-95"
+                    >
+                      <ArrowUpDown size={12} className="text-fg-muted" />
+                      <span className="hidden xs:inline">Sort:</span>
+                      <span>{sortOptions.find(o => o.id === sortBy)?.label}</span>
+                      <ChevronDown size={12} className="text-fg-muted ml-0.5" />
+                    </button>
+                    
+                    {isSortDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsSortDropdownOpen(false)}></div>
+                        <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-48 bg-canvas-surface border border-border-default rounded-md shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                          {sortOptions.map(option => (
+                            <button
+                              key={option.id}
+                              onClick={() => {
+                                setSortBy(option.id as any);
+                                setIsSortDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3.5 py-2 text-xs sm:text-sm transition-colors ${sortBy === option.id ? 'bg-canvas-inset text-fg-default font-medium' : 'text-fg-muted hover:bg-canvas-inset hover:text-fg-default'}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Sync Live Button */}
+                  <button
+                    onClick={() => {
+                      if (isRefreshing) return;
+                      setIsRefreshing(true);
+                      setBlueprints([]);
+                      setPage(1);
+                      setHasMore(true);
+                      setSkeletonsCount(PAGE_SIZE);
+                      setRefreshCount(prev => prev + 1);
+                    }}
+                    disabled={isRefreshing}
+                    title="Sync live catalog from database API"
+                    className="flex items-center gap-1.5 bg-canvas-surface hover:bg-canvas-inset border border-border-default text-fg-default p-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 whitespace-nowrap shadow-xs shrink-0 active:scale-95"
+                  >
+                    <RefreshCw size={12} className={`text-fg-muted ${isRefreshing ? 'animate-spin text-action-accent' : ''}`} />
+                    <span className="hidden sm:inline">Sync</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Quick Filter Reset if filters active */}
+                  {(activeFilterCount > 0 || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategoryType([]);
+                        setSelectedIndustry([]);
+                        setSelectedDomain([]);
+                        setPriceFilter('all');
+                        setAssetTypeFilter('all');
+                      }}
+                      className="text-xs text-action-accent hover:underline shrink-0 px-1 font-medium"
+                    >
+                      Reset
+                    </button>
+                  )}
+
+                  {/* Manual Compact/Expand Header Button for mobile */}
+                  <button
+                    type="button"
+                    onClick={() => setIsScrolledCompact(!isScrolledCompact)}
+                    title={isScrolledCompact ? "Expand full filters header" : "Compact filters header (more display space)"}
+                    className="md:hidden p-1.5 bg-canvas-surface hover:bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default transition-colors shadow-xs active:scale-95"
+                  >
+                    {isScrolledCompact ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Quick Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-0.5">
+                <button
+                  onClick={() => toggleAssetType('blueprint')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                    assetTypeFilter === 'blueprint'
+                      ? 'bg-action-primary text-white border-action-primary'
+                      : 'bg-canvas-surface hover:bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default'
+                  }`}
+                >
+                  System Blueprints
+                </button>
+                <button
+                  onClick={() => toggleAssetType('roadmap')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                    assetTypeFilter === 'roadmap'
+                      ? 'bg-action-primary text-white border-action-primary'
+                      : 'bg-canvas-surface hover:bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default'
+                  }`}
+                >
+                  Skill Roadmaps
+                </button>
+                <button
+                  onClick={() => setPriceFilter(priceFilter === 'free' ? 'all' : 'free')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                    priceFilter === 'free'
+                      ? 'bg-action-primary text-white border-action-primary'
+                      : 'bg-canvas-surface hover:bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default'
+                  }`}
+                >
+                  Free
+                </button>
+                <button
+                  onClick={() => setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                    priceFilter === 'paid'
+                      ? 'bg-action-primary text-white border-action-primary'
+                      : 'bg-canvas-surface hover:bg-canvas-inset border-border-default text-fg-muted hover:text-fg-default'
+                  }`}
+                >
+                  Paid
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Results Grid */}
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {filteredBlueprints.length === 0 && skeletonsCount === 0 && !isLoading && !isLoadingMore && !isStreaming && !hasMore ? (
-            <div className="bg-canvas-surface border border-border-default rounded-lg p-12 max-w-md mx-auto text-center mt-12">
+            <div className="bg-canvas-surface border border-border-default rounded-lg p-6 sm:p-12 max-w-md mx-auto text-center mt-6 sm:mt-12">
                <Sparkles className="w-10 h-10 text-action-accent mx-auto mb-4 opacity-80" />
-               <h3 className="text-lg font-semibold text-fg-default mb-2 tracking-tight">No blueprints found matching your criteria</h3>
-               <p className="text-sm text-fg-muted mb-6">We don't have a pre-built pattern for this yet in our catalog.</p>
+               <h3 className="text-base sm:text-lg font-semibold text-fg-default mb-2 tracking-tight">No blueprints found matching your criteria</h3>
+               <p className="text-xs sm:text-sm text-fg-muted mb-6">We don't have a pre-built pattern for this yet in our catalog.</p>
                <button 
                 onClick={() => {
                   if (onNavigateToRoadmap) onNavigateToRoadmap();
                   // Fallback if not provided is just handled by root app via prompt trigger
                 }}
-                className="bg-[#238636] hover:bg-[#2ea043] text-white px-5 py-2.5 rounded-md text-sm font-medium transition-colors border border-[rgba(255,255,255,0.1)] shadow-sm inline-flex items-center gap-2"
+                className="bg-[#238636] hover:bg-[#2ea043] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors border border-[rgba(255,255,255,0.1)] shadow-sm inline-flex items-center gap-2 active:scale-95"
                >
-                 <Sparkles size={16} />
+                 <Sparkles size={15} />
                  Use AI to Generate This Now
                </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-10 w-full pb-20 md:pb-6">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4 sm:gap-6 w-full">
+            <div className="flex flex-col gap-8 w-full pb-36 sm:pb-16">
+              <div className={`grid w-full ${
+                isCompactGrid 
+                  ? 'grid-cols-2 gap-2.5 sm:gap-5 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]' 
+                  : 'grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 sm:gap-6'
+              }`}>
                 {filteredBlueprints.map((bp: any) => (
                   <BlueprintCard 
                     key={bp.id}
@@ -637,11 +962,12 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
                     onCardClick={handleCardClick}
                     isBookmarked={savedBlueprintIds.includes(bp.id)}
                     onBookmarkClick={handleBookmarkClick}
+                    isCompact={isCompactGrid}
                   />
                 ))}
 
                 {Array.from({ length: skeletonsCount }).map((_, idx) => (
-                  <BlueprintSkeletonCard key={`skeleton-${idx}`} />
+                  <BlueprintSkeletonCard key={`skeleton-${idx}`} isCompact={isCompactGrid} />
                 ))}
 
                 {hasMore && !isLoading && !isLoadingMore && !isStreaming && (
@@ -652,6 +978,22 @@ export function CatalogPage({ onNavigateToProduct, onNavigateToRoadmap }: Catalo
           )}
         </div>
       </main>
+
+      {/* Mobile Floating Filter Button (Centered at bottom) */}
+      <button 
+        type="button"
+        onClick={() => setIsMobileFiltersOpen(true)}
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#238636] hover:bg-[#2ea043] border border-[rgba(255,255,255,0.2)] shadow-2xl text-white px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none backdrop-blur-md"
+        aria-label="Open Filters"
+      >
+        <Filter size={15} />
+        <span>Filters</span>
+        {activeFilterCount > 0 && (
+          <span className="bg-white text-[#238636] text-[10px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center leading-none">
+            {activeFilterCount}
+          </span>
+        )}
+      </button>
     </div>
   );
 }

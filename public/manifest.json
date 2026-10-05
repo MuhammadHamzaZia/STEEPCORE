@@ -20,5 +20,14 @@
   "theme_color": "#4f46e5",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "categories": ["education", "productivity", "utilities"]
+  "categories": ["education", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "/screenshot.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "STEEPCORE Interactive Roadmaps"
+    }
+  ]
 }

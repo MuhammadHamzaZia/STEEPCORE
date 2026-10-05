@@ -140,7 +140,7 @@ export function ProductDetailPage({ onNavigateToEditor, onNavigateToCatalog }: {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 pb-32 sm:pb-12 flex flex-col lg:flex-row gap-8">
         {/* LEFT COLUMN: ARCHITECTURE SPEC & PREVIEW (65%) */}
         <div className="flex-1 lg:w-[65%] flex flex-col min-w-0">
           

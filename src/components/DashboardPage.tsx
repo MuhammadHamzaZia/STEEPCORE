@@ -157,7 +157,7 @@ export function DashboardPage({ onNavigateToEditor, onNavigateToCatalog }: Dashb
           ))}
         </div>
 
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full">          
+        <div className="p-4 sm:p-6 lg:p-8 pb-32 sm:pb-12 max-w-[1400px] mx-auto w-full">          
           <h1 className="text-2xl font-semibold text-fg-default mb-6 sm:mb-8 tracking-tight">
             {activeTab === 'overview' && 'My Workspace'}
             {activeTab === 'roadmaps' && 'Active Roadmaps'}

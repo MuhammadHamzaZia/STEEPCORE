@@ -30,6 +30,8 @@ interface UIStore {
   setSelectedPromptType: (type: string) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (val: boolean) => void;
+  isMobileHeaderHidden: boolean;
+  setIsMobileHeaderHidden: (val: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -44,6 +46,7 @@ export const useUIStore = create<UIStore>((set) => ({
   selectedBlueprintId: null,
   selectedPromptType: 'System Architecture',
   isAuthModalOpen: false,
+  isMobileHeaderHidden: false,
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedDomain: (domain) => set({ selectedDomain: Array.isArray(domain) ? domain : (domain === "all" ? [] : [domain]) }),
   toggleDomain: (domain) => set((state) => ({ selectedDomain: domain === "all" ? [] : (state.selectedDomain.includes(domain) ? state.selectedDomain.filter(d => d !== domain) : [...state.selectedDomain, domain]) })),
@@ -57,5 +60,6 @@ export const useUIStore = create<UIStore>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSelectedBlueprintId: (id) => set({ selectedBlueprintId: id }),
   setSelectedPromptType: (type) => set({ selectedPromptType: type }),
-  setIsAuthModalOpen: (val) => set({ isAuthModalOpen: val })
+  setIsAuthModalOpen: (val) => set({ isAuthModalOpen: val }),
+  setIsMobileHeaderHidden: (val) => set({ isMobileHeaderHidden: val })
 }));

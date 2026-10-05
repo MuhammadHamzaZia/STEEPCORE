@@ -15,7 +15,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, currentPage = 'landing', onNavigate }: LayoutProps) {
-  const { searchQuery, setSearchQuery, isAuthModalOpen, setIsAuthModalOpen } = useUIStore();
+  const { searchQuery, setSearchQuery, isAuthModalOpen, setIsAuthModalOpen, isMobileHeaderHidden } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -41,24 +41,27 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
     <div className="flex flex-col flex-1 h-full w-full bg-canvas-default text-fg-default font-sans">
       
       {/* Header */}
-      <header className="h-14 bg-canvas-inset border-b border-border-default flex items-center justify-between px-4 sticky top-0 z-40">
+      <header className={`bg-canvas-inset border-border-default flex items-center justify-between px-3 sm:px-4 sticky top-0 z-40 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+        isMobileHeaderHidden 
+          ? 'h-0 -translate-y-full opacity-0 pointer-events-none md:h-14 md:translate-y-0 md:opacity-100 md:pointer-events-auto border-b-0 md:border-b' 
+          : 'h-14 translate-y-0 opacity-100 border-b'
+      }`}>
         <div className="flex items-center gap-4 flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div 
               className="w-8 h-8 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              title="Toggle Sidebar"
             > 
               <img src="/logo.svg" alt="Steepcore Logo" className="w-8 h-8 object-contain" />
             </div>
             <span 
-              className="font-bold text-fg-default tracking-tight cursor-pointer ml-2 text-lg"
+              className="font-bold text-fg-default tracking-tight cursor-pointer ml-1 text-lg"
               onClick={() => onNavigate && onNavigate('landing')}
             >
               STEEPCORE
             </span>
           </div>
-
-
         </div>
 
         <div className="flex-1 max-w-xl px-4 hidden md:block">
@@ -184,14 +187,16 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
         </div>
       </header>
 
-      {/* Sidebar Open Trigger Button (located directly below the logo) */}
+      {/* Sidebar Open Trigger Button (located directly below the logo and header) */}
       {!isSidebarOpen && onNavigate && (
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
           title="Open Sidebar"
           aria-label="Open Sidebar"
-          className="fixed top-[62px] left-3 sm:left-4 z-[100] p-2 bg-canvas-surface hover:bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default transition-colors flex items-center justify-center cursor-pointer select-none active:scale-95 shadow-sm"
+          className={`fixed ${isMobileHeaderHidden ? 'top-1.5' : 'top-[62px]'} md:top-[62px] left-3 sm:left-4 z-40 p-2 bg-canvas-surface hover:bg-canvas-inset border border-border-default rounded-md text-fg-muted hover:text-fg-default transition-all duration-300 items-center justify-center cursor-pointer select-none active:scale-95 shadow-sm ${
+            (currentPage === 'editor' || currentPage === 'roadmap') ? 'hidden md:flex' : 'flex'
+          }`}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="4" y1="6" x2="20" y2="6" />
@@ -221,7 +226,7 @@ export function Layout({ children, currentPage = 'landing', onNavigate }: Layout
           </>
         )}
 
-        <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+        <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-[env(safe-area-inset-bottom,0px)]">
           {children}
         </main>
       </div>

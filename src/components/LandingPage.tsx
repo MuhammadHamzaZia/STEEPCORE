@@ -307,7 +307,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGeneratePrompt, onNa
       </div>
       
       {/* Footer */}
-      <div className="mt-auto pt-12 pb-4 text-sm text-fg-muted border-t border-border-default w-full max-w-[1000px] flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+      <div className="mt-auto pt-12 pb-32 sm:pb-8 text-sm text-fg-muted border-t border-border-default w-full max-w-[1000px] flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
         <span>© {new Date().getFullYear()} STEEPCORE, Inc.</span>
       </div>
     </div>

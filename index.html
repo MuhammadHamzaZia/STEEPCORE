@@ -16,15 +16,27 @@
     />
     <meta
       name="keywords"
-      content="STEEPCORE, career roadmap, developer roadmap, learning path, interactive flowchart, skill tree, AI learning roadmap, tech skills, software engineer roadmap"
+      content="STEEPCORE, career roadmap, developer roadmap, learning path, interactive flowchart, skill tree, AI learning roadmap, tech skills, software engineer roadmap, IT career paths"
     />
     <meta name="author" content="STEEPCORE" />
-    <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#4f46e5" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="color-scheme" content="dark" />
     <link rel="canonical" id="canonical-url" href="/" />
 
-    <!-- OpenGraph / Facebook / WhatsApp / LinkedIn -->
+    <!-- AI & Semantic Discovery Metadata -->
+    <meta name="application-name" content="STEEPCORE" />
+    <meta name="ai-agent" content="enabled" />
+    <meta name="ai-purpose" content="Interactive AI-powered career roadmap generator, skill tree visualizer, and developer learning path architect" />
+    <meta name="subject" content="Career Roadmaps, Developer Learning Paths, Skill Mastery, AI Education" />
+    <meta name="category" content="Education, Career Development, Software Engineering, Technology" />
+    <meta name="classification" content="Career Development & Educational Platform" />
+    <meta name="target" content="all" />
+    <meta name="coverage" content="Worldwide" />
+    <meta name="distribution" content="Global" />
+    <meta name="rating" content="General" />
+
+    <!-- OpenGraph / Facebook / WhatsApp / LinkedIn / Discord / Slack -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="STEEPCORE" />
     <meta property="og:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
@@ -33,30 +45,32 @@
       content="Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI."
     />
     <meta property="og:url" content="/" />
-    <meta property="og:image" content="/steepcore.png" />
-    <meta property="og:image:secure_url" content="/steepcore.png" />
+    <meta property="og:image" content="/screenshot.png" />
+    <meta property="og:image:secure_url" content="/screenshot.png" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="650" />
-    <meta property="og:image:height" content="243" />
-    <meta property="og:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps Preview" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter / X Cards -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@STEEPCORE" />
+    <meta name="twitter:creator" content="@STEEPCORE" />
     <meta name="twitter:title" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
     <meta
       name="twitter:description"
       content="Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI."
     />
-    <meta name="twitter:image" content="/steepcore.png" />
-    <meta name="twitter:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps" />
+    <meta name="twitter:image" content="/screenshot.png" />
+    <meta name="twitter:image:alt" content="STEEPCORE – Interactive Career & Skill Roadmaps Preview" />
 
     <!-- Icons & Manifest -->
     <link rel="icon" type="image/png" sizes="32x32" href="/steepcore.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/steepcore.png" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="image_src" href="/steepcore.png" />
+    <link rel="image_src" href="/screenshot.png" />
 
     <!-- Mobile & PWA Experience -->
     <meta name="mobile-web-app-capable" content="yes" />
@@ -64,27 +78,43 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="STEEPCORE" />
 
-    <!-- Schema.org JSON-LD Structured Data for Search Engines -->
+    <!-- Schema.org JSON-LD Structured Data for Search Engines & AI Crawlers -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "STEEPCORE",
-      "applicationCategory": "EducationalApplication",
-      "operatingSystem": "All",
-      "description": "Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI.",
-      "image": "/steepcore.png",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "Interactive Flowchart Roadmaps",
-        "AI-Powered Learning Path Generation",
-        "Role & Technology Blueprints",
-        "Milestone & Progress Tracking",
-        "PDF Export & Custom Nodes"
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://steepcore.com/#webapp",
+          "name": "STEEPCORE",
+          "url": "https://steepcore.com",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "All modern browsers (Web, Mobile, Desktop)",
+          "description": "Generates comprehensive career roadmaps for any job role as interactive flowcharts. Explore blueprints, track milestones, and master skills with AI.",
+          "image": "/screenshot.png",
+          "screenshot": "/screenshot.png",
+          "browserRequirements": "Requires JavaScript. Requires HTML5.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Interactive Flowchart Roadmaps",
+            "AI-Powered Learning Path Generation",
+            "Role & Technology Blueprints Library",
+            "Milestone & Skill Mastery Tracking",
+            "Full ReactFlow Visual Graph Editor",
+            "PDF Export & Step Progression"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://steepcore.com/#organization",
+          "name": "STEEPCORE",
+          "url": "https://steepcore.com",
+          "logo": "/logo.svg"
+        }
       ]
     }
     </script>
@@ -99,7 +129,7 @@
           var twImg = document.querySelector('meta[name="twitter:image"]');
           var ogUrl = document.querySelector('meta[property="og:url"]');
           var canonical = document.getElementById('canonical-url');
-          var fullImg = origin + '/steepcore.png';
+          var fullImg = origin + '/screenshot.png';
           var fullUrl = origin + window.location.pathname;
           if (ogImg) ogImg.setAttribute('content', fullImg);
           if (ogImgSec) ogImgSec.setAttribute('content', fullImg);
